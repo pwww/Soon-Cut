@@ -12,20 +12,20 @@ enum Edition {
 
     var label: String {
         switch self {
-        case .openSource: return "開源版"
-        case .free: return "免費版"
-        case .pro: return "付費版"
+        case .openSource: return String(localized: "開源版")
+        case .free: return String(localized: "免費版")
+        case .pro: return String(localized: "付費版")
         }
     }
 
     var explanation: String {
         switch self {
         case .openSource:
-            return "你使用的是從 GitHub 原始碼自行編譯的開源版（GPL-3.0），功能完整、沒有浮水印。"
+            return String(localized: "你使用的是從 GitHub 原始碼自行編譯的開源版（GPL-3.0），功能完整、沒有浮水印。")
         case .free:
-            return "你使用的是 App Store 免費版，功能完整，輸出的影片右下角有小小的「SoonCut」浮水印。一次買斷即可移除浮水印。"
+            return String(localized: "你使用的是 App Store 免費版，功能完整，輸出的影片右下角有小小的「SoonCut」浮水印。一次買斷即可移除浮水印。")
         case .pro:
-            return "你使用的是 App Store 付費版，輸出的影片沒有浮水印。感謝支持！"
+            return String(localized: "你使用的是 App Store 付費版，輸出的影片沒有浮水印。感謝支持！")
         }
     }
 }
@@ -152,13 +152,13 @@ final class LicenseStore: ObservableObject {
         NSApp.keyWindow?.makeKeyAndOrderFront(nil)
         do {
             guard let product = try await Product.products(for: [Licensing.productID]).first else {
-                purchaseError = "暫時無法取得商品資訊，請確認網路後再試。"
+                purchaseError = String(localized: "暫時無法取得商品資訊，請確認網路後再試。")
                 return
             }
             switch try await product.purchase() {
             case .success(let verification):
                 guard case .verified(let t) = verification else {
-                    purchaseError = "這筆購買無法驗證。"
+                    purchaseError = String(localized: "這筆購買無法驗證。")
                     return
                 }
                 await t.finish()
@@ -183,7 +183,7 @@ final class LicenseStore: ObservableObject {
         do {
             try await StoreKit.AppStore.sync()
             await refresh()
-            if !isPro { purchaseError = "找不到可以回復的購買紀錄。" }
+            if !isPro { purchaseError = String(localized: "找不到可以回復的購買紀錄。") }
         } catch {
             purchaseError = error.localizedDescription
         }

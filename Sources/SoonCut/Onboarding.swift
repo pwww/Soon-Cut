@@ -4,8 +4,10 @@ import AppKit
 struct OnboardingPage: Identifiable {
     let id = UUID()
     let symbol: String
-    let title: String
-    let body: String
+    // ⚠️ LocalizedStringKey 不是 String：型別是 String 的話，下面那六頁字
+    // 不會被抽進字串目錄，英文使用者第一次打開 App 看到的會是整頁中文。
+    let title: LocalizedStringKey
+    let body: LocalizedStringKey
 }
 
 /// 第一次打開時的教學引導；之後可從浮動視窗的「?」再打開

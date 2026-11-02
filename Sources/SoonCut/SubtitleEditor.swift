@@ -147,7 +147,7 @@ struct SubtitleEditor: View {
                 let over = platform.maxDuration.map { duration > $0 } ?? false
                 HStack(spacing: 3) {
                     Image(systemName: over ? "exclamationmark.triangle.fill" : "checkmark")
-                    Text(platform.rawValue)
+                    Text(platform.label)
                     if over, let max = platform.maxDuration {
                         Text("超過 \(formatTime(max))")
                     }
@@ -336,7 +336,7 @@ struct OutputView: View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("", selection: $store.outputTab) {
                 ForEach(OutputStatus.allCases) { status in
-                    Text("\(status.rawValue) \(store.exports(in: status).count)").tag(status)
+                    Text("\(status.label) \(store.exports(in: status).count)").tag(status)
                 }
             }
             .pickerStyle(.segmented)
@@ -382,7 +382,7 @@ struct OutputView: View {
         }
     }
 
-    private var emptyText: String {
+    private var emptyText: LocalizedStringKey {
         switch store.outputTab {
         case .latest: return "在「字幕」分頁按「輸出影片」，影片會出現在這裡"
         case .uploaded: return "上傳後把影片標記為「已上傳」"
@@ -429,7 +429,7 @@ struct ExportRow: View {
 
             Menu {
                 ForEach(OutputStatus.allCases.filter { $0 != item.status }) { status in
-                    Button("移到「\(status.rawValue)」") { store.setStatus(item, status) }
+                    Button("移到「\(status.label)」") { store.setStatus(item, status) }
                 }
                 Divider()
                 Button("在 Finder 中顯示") { store.reveal(item) }
@@ -477,7 +477,8 @@ struct TranscribeStatusView: View {
                     .font(.caption.weight(.semibold))
                 // 每秒更新經過時間，讓人知道沒有卡住
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text("已過 " + formatTime(context.date.timeIntervalSince(store.subtitleStatusStart ?? context.date)))
+                    // ⚠️ 用插值不要用字串相加：相加的話「已過 」是裸 String，抽不進字串目錄
+                    Text("已過 \(formatTime(context.date.timeIntervalSince(store.subtitleStatusStart ?? context.date)))")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -508,7 +509,8 @@ struct TranscribeStatusView: View {
         let all = ByteCountFormatter.string(fromByteCount: total, countStyle: .file)
         var text = "\(done) / \(all)"
         if let eta = store.downloadETA {
-            text += eta < 60 ? "，剩不到 1 分鐘" : "，約剩 \(Int((eta / 60).rounded(.up))) 分鐘"
+            text += eta < 60 ? String(localized: "，剩不到 1 分鐘")
+                             : String(localized: "，約剩 \(Int((eta / 60).rounded(.up))) 分鐘")
         }
         return text
     }

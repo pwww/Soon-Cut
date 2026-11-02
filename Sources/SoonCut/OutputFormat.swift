@@ -12,6 +12,12 @@ enum Platform: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// 顯示名。⚠️ 不要直接顯示 `rawValue`——多數平台名是品牌名不翻譯，
+    /// 但「IG 貼文」是描述性的，英文使用者看到中文會很突兀。
+    var label: String {
+        self == .igPost ? String(localized: "IG 貼文") : rawValue
+    }
+
     /// 影片長度上限（秒）；nil = 對短影音來說沒有實際限制
     var maxDuration: Double? {
         switch self {
@@ -36,7 +42,7 @@ enum OutputFormat: String, CaseIterable, Identifiable, Codable {
 
     var label: String {
         switch self {
-        case .original: return "原始"
+        case .original: return String(localized: "原始")
         case .vertical: return "9:16"
         case .portrait: return "4:5"
         case .square: return "1:1"
@@ -89,9 +95,9 @@ enum ExportQuality: String, CaseIterable, Identifiable, Codable {
 
     var note: String {
         switch self {
-        case .high: return "高畫質"
-        case .standard: return "標準，社群建議"
-        case .small: return "小檔案"
+        case .high: return String(localized: "高畫質")
+        case .standard: return String(localized: "標準，社群建議")
+        case .small: return String(localized: "小檔案")
         }
     }
 

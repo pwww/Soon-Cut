@@ -113,7 +113,8 @@ final class SelectionView: NSView {
         ]
 
         guard let r = selection else {
-            let hint = shortsMode ? "拖曳框選錄影範圍（鎖定 9:16）· Esc 取消" : "拖曳框選錄影範圍 · Esc 取消"
+            let hint = shortsMode ? String(localized: "拖曳框選錄影範圍（鎖定 9:16）· Esc 取消")
+                                  : String(localized: "拖曳框選錄影範圍 · Esc 取消")
             let s = NSAttributedString(string: hint, attributes: attrs)
             s.draw(at: NSPoint(x: bounds.midX - s.size().width / 2, y: bounds.midY))
             return

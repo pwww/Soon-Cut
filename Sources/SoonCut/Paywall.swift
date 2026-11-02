@@ -62,7 +62,8 @@ struct PaywallSheet: View {
         }
     }
 
-    private func row(_ icon: String, _ text: String) -> some View {
+    // ⚠️ text 必須是 LocalizedStringKey 不是 String，否則這四行不會被抽進字串目錄
+    private func row(_ icon: String, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 9) {
             Image(systemName: icon)
                 .foregroundStyle(.tint)

@@ -1,6 +1,10 @@
 name: SoonCut
 options:
   bundleIdPrefix: cc.aicolab
+  # ⚠️ 開發語言 = en，是**退路語言**：使用者的語言清單跟 App 的語系對不上時，
+  # macOS 會退到這一個。設成 zh-Hant 的話，一台只設日文的 Mac 會拿到整頁中文。
+  # 這跟字串目錄的 sourceLanguage（zh-Hant，原始碼裡的字串）是兩回事。
+  developmentLanguage: en
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
@@ -61,6 +65,7 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
+        SWIFT_EMIT_LOC_STRINGS: YES   # 建置時把字串抽進 Localizable.xcstrings
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Soon-Cut
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.video

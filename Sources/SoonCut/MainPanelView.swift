@@ -62,7 +62,7 @@ struct MainPanelView: View {
             Button {
                 store.toggleRecording()
             } label: {
-                Label(store.isRecording ? formatTime(store.elapsed) : "錄影",
+                Label(store.isRecording ? formatTime(store.elapsed) : String(localized: "錄影"),
                       systemImage: store.isRecording ? "stop.circle.fill" : "record.circle")
                     .monospacedDigit()
             }
@@ -202,7 +202,8 @@ struct MainPanelView: View {
         }
     }
 
-    private func emptyRow(_ text: String, height: CGFloat) -> some View {
+    // ⚠️ LocalizedStringKey 不是 String，否則呼叫端那些字串不會被抽進字串目錄
+    private func emptyRow(_ text: LocalizedStringKey, height: CGFloat) -> some View {
         Text(text)
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -218,7 +219,7 @@ struct MainPanelView: View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("", selection: $store.previewMode) {
                 ForEach(PreviewMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Text(mode.label).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
@@ -244,7 +245,7 @@ struct MainPanelView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    private func placeholder(_ title: String, _ note: String) -> some View {
+    private func placeholder(_ title: LocalizedStringKey, _ note: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.headline).foregroundStyle(.secondary)
             Text(note).font(.caption).foregroundStyle(.tertiary)
@@ -308,8 +309,8 @@ struct ClipRow: View {
     }
 
     private var dropHint: String? {
-        if !staged, dragOffset.height > switchThreshold { return "放開：移到暫存" }
-        if staged, dragOffset.height < -switchThreshold { return "放開：加回剪輯" }
+        if !staged, dragOffset.height > switchThreshold { return String(localized: "放開：移到暫存") }
+        if staged, dragOffset.height < -switchThreshold { return String(localized: "放開：加回剪輯") }
         return nil
     }
 

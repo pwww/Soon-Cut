@@ -7,8 +7,8 @@ enum ExportError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .cannotRead: return "無法讀取片段。"
-        case .writeFailed(let reason): return "寫入影片失敗：\(reason)"
+        case .cannotRead: return String(localized: "無法讀取片段。")
+        case .writeFailed(let reason): return String(localized: "寫入影片失敗：\(reason)")
         }
     }
 }
@@ -102,10 +102,10 @@ enum Exporter {
         }
 
         guard reader.startReading() else {
-            throw ExportError.writeFailed(reader.error?.localizedDescription ?? "無法開始讀取")
+            throw ExportError.writeFailed(reader.error?.localizedDescription ?? String(localized: "無法開始讀取"))
         }
         guard writer.startWriting() else {
-            throw ExportError.writeFailed(writer.error?.localizedDescription ?? "無法開始寫入")
+            throw ExportError.writeFailed(writer.error?.localizedDescription ?? String(localized: "無法開始寫入"))
         }
         writer.startSession(atSourceTime: .zero)
 
@@ -124,11 +124,11 @@ enum Exporter {
 
         if reader.status == .failed {
             writer.cancelWriting()
-            throw ExportError.writeFailed(reader.error?.localizedDescription ?? "讀取中斷")
+            throw ExportError.writeFailed(reader.error?.localizedDescription ?? String(localized: "讀取中斷"))
         }
         await writer.finishWriting()
         if writer.status != .completed {
-            throw ExportError.writeFailed(writer.error?.localizedDescription ?? "寫入中斷")
+            throw ExportError.writeFailed(writer.error?.localizedDescription ?? String(localized: "寫入中斷"))
         }
         progress(1)
     }

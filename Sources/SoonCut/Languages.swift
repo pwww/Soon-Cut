@@ -8,17 +8,17 @@ enum SpeechLanguage: String, CaseIterable, Identifiable, Codable {
 
     var label: String {
         switch self {
-        case .auto: return "自動偵測"
-        case .zh: return "中文"
-        case .en: return "英文"
-        case .ja: return "日文"
-        case .ko: return "韓文"
-        case .es: return "西班牙文"
-        case .fr: return "法文"
-        case .de: return "德文"
-        case .th: return "泰文"
-        case .vi: return "越南文"
-        case .id: return "印尼文"
+        case .auto: return String(localized: "自動偵測")
+        case .zh: return String(localized: "中文")
+        case .en: return String(localized: "英文")
+        case .ja: return String(localized: "日文")
+        case .ko: return String(localized: "韓文")
+        case .es: return String(localized: "西班牙文")
+        case .fr: return String(localized: "法文")
+        case .de: return String(localized: "德文")
+        case .th: return String(localized: "泰文")
+        case .vi: return String(localized: "越南文")
+        case .id: return String(localized: "印尼文")
         }
     }
 
@@ -34,18 +34,18 @@ enum SubtitleLanguage: String, CaseIterable, Identifiable, Codable {
 
     var label: String {
         switch self {
-        case .same: return "與語音相同"
-        case .zhHant: return "繁體中文"
-        case .zhHans: return "簡體中文"
-        case .en: return "英文"
-        case .ja: return "日文"
-        case .ko: return "韓文"
-        case .es: return "西班牙文"
-        case .fr: return "法文"
-        case .de: return "德文"
-        case .th: return "泰文"
-        case .vi: return "越南文"
-        case .id: return "印尼文"
+        case .same: return String(localized: "與語音相同")
+        case .zhHant: return String(localized: "繁體中文")
+        case .zhHans: return String(localized: "簡體中文")
+        case .en: return String(localized: "英文")
+        case .ja: return String(localized: "日文")
+        case .ko: return String(localized: "韓文")
+        case .es: return String(localized: "西班牙文")
+        case .fr: return String(localized: "法文")
+        case .de: return String(localized: "德文")
+        case .th: return String(localized: "泰文")
+        case .vi: return String(localized: "越南文")
+        case .id: return String(localized: "印尼文")
         }
     }
 

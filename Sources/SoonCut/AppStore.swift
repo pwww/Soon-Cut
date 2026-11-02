@@ -8,6 +8,15 @@ enum PreviewMode: String, CaseIterable, Identifiable {
     case subtitle = "字幕"
     case output = "輸出"
     var id: String { rawValue }
+
+    /// 顯示用。⚠️ 不要直接顯示 `rawValue`。
+    var label: String {
+        switch self {
+        case .clip: return String(localized: "剪輯")
+        case .subtitle: return String(localized: "字幕")
+        case .output: return String(localized: "輸出")
+        }
+    }
 }
 
 /// 字幕跟著「哪一版時間軸」轉寫的，存在 Raw/subtitles.json
@@ -177,7 +186,7 @@ final class AppStore: ObservableObject {
             if captureMicrophone {
                 let granted = await AVCaptureDevice.requestAccess(for: .audio)
                 guard granted else {
-                    errorMessage = "沒有麥克風權限：請到「系統設定 › 隱私權與安全性 › 麥克風」允許 SoonCut，或先關掉麥克風。"
+                    errorMessage = String(localized: "沒有麥克風權限：請到「系統設定 › 隱私權與安全性 › 麥克風」允許 SoonCut，或先關掉麥克風。")
                     return
                 }
             }
@@ -312,8 +321,8 @@ final class AppStore: ObservableObject {
         panel.allowedContentTypes = [.movie]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.prompt = "匯入"
-        panel.message = "選擇要匯入的影片，會複製一份到 Soon-Cut 的片段資料夾，原檔不動"
+        panel.prompt = String(localized: "匯入")
+        panel.message = String(localized: "選擇要匯入的影片，會複製一份到 Soon-Cut 的片段資料夾，原檔不動")
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 2)
         NSApp.activate()
         guard panel.runModal() == .OK else { return }
@@ -324,7 +333,7 @@ final class AppStore: ObservableObject {
     func importFiles(_ urls: [URL]) {
         let videos = urls.filter { ClipStorage.videoExtensions.contains($0.pathExtension.lowercased()) }
         guard !videos.isEmpty else {
-            errorMessage = "只能匯入 MP4、MOV、M4V 影片。"
+            errorMessage = String(localized: "只能匯入 MP4、MOV、M4V 影片。")
             return
         }
         Task {
@@ -349,7 +358,7 @@ final class AppStore: ObservableObject {
                 previewMode = .clip
                 ClipStorage.saveLibrary(clips)
             }
-            errorMessage = failed.isEmpty ? nil : "無法匯入：" + failed.joined(separator: "、")
+            errorMessage = failed.isEmpty ? nil : String(localized: "無法匯入：\(failed.joined(separator: "、"))")
         }
     }
 
@@ -439,8 +448,8 @@ final class AppStore: ObservableObject {
                 }
                 stopDownloadMonitor()
                 setStep(firstTime ? "3/3" : nil,
-                        "轉寫字幕",
-                        firstTime ? "模型準備好了，正在轉寫，通常比影片長度快很多。" : nil)
+                        String(localized: "轉寫字幕"),
+                        firstTime ? String(localized: "模型準備好了，正在轉寫，通常比影片長度快很多。") : nil)
                 let result = try await Composer.build(clips: currentClips)
                 let transcript = try await transcriber.transcribe(asset: result.composition,
                                                                   pieces: result.pieces,
@@ -457,7 +466,7 @@ final class AppStore: ObservableObject {
                 subtitles = localized(sourceSubtitles)
                 saveSubtitles()
             } catch {
-                errorMessage = "轉寫失敗：" + Self.describe(error)
+                errorMessage = String(localized: "轉寫失敗：\(Self.describe(error))")
             }
             stopDownloadMonitor()
             subtitleStatus = nil
@@ -479,17 +488,17 @@ final class AppStore: ObservableObject {
 
     private func showDownloading() {
         let size = ByteCountFormatter.string(fromByteCount: Transcriber.modelDownloadBytes, countStyle: .file)
-        setStep("1/3", "下載語音模型",
-                "約 \(size)，只需要下載一次。一般網路約 5 分鐘，咖啡廳等較慢的網路可能要 15–20 分鐘，可以先去做別的事。")
+        setStep("1/3", String(localized: "下載語音模型"),
+                String(localized: "約 \(size)，只需要下載一次。一般網路約 5 分鐘，咖啡廳等較慢的網路可能要 15–20 分鐘，可以先去做別的事。"))
         startDownloadMonitor()
     }
 
     private func showPreparing() {
         stopDownloadMonitor()
         let note = Transcriber.isModelDownloaded && subtitleStep == nil
-            ? "載入已下載的語音模型。第一次使用需要把模型轉成這台 Mac 能用的格式，約 1–2 分鐘；完成後會自動開始轉寫。"
-            : "下載完成。正在把模型轉成這台 Mac 能用的格式，只有第一次需要，約 1–2 分鐘；完成後會自動開始轉寫，不用再按一次。"
-        setStep("2/3", "準備語音模型", note)
+            ? String(localized: "載入已下載的語音模型。第一次使用需要把模型轉成這台 Mac 能用的格式，約 1–2 分鐘；完成後會自動開始轉寫。")
+            : String(localized: "下載完成。正在把模型轉成這台 Mac 能用的格式，只有第一次需要，約 1–2 分鐘；完成後會自動開始轉寫，不用再按一次。")
+        setStep("2/3", String(localized: "準備語音模型"), note)
     }
 
     private func setStep(_ step: String?, _ title: String, _ detail: String?) {
@@ -569,8 +578,8 @@ final class AppStore: ObservableObject {
         // 中文原文已經是繁體
         let source = Locale.Language(identifier: spoken == "zh" ? "zh-Hant" : spoken)
         let config = TranslationSession.Configuration(source: source, target: Locale.Language(identifier: target))
-        setStep(nil, "翻譯成\(subtitleLanguage.label)",
-                "使用 macOS 內建的本機翻譯，不會上傳。第一次翻譯某種語言時，系統會請你下載語言包。")
+        setStep(nil, String(localized: "翻譯成\(subtitleLanguage.label)"),
+                String(localized: "使用 macOS 內建的本機翻譯，不會上傳。第一次翻譯某種語言時，系統會請你下載語言包。"))
         if translationConfig == config {
             translationConfig?.invalidate()   // 同樣的設定也要重新跑一次
         } else {
@@ -590,7 +599,7 @@ final class AppStore: ObservableObject {
     }
 
     func translationFailed(_ error: Error) {
-        errorMessage = "翻譯失敗：" + Self.describe(error) + "（字幕先保留原文）"
+        errorMessage = String(localized: "翻譯失敗：\(Self.describe(error))（字幕先保留原文）")
         subtitles = sourceSubtitles
         saveSubtitles()
         finishSubtitleStatus()
@@ -671,7 +680,7 @@ final class AppStore: ObservableObject {
     func exportVideo() {
         guard !isExporting, !activeClips.isEmpty else { return }
         let url = OutputLibrary.newExportURL()
-        exportStatus = "輸出中…"
+        exportStatus = String(localized: "輸出中…")
         exportProgress = 0
         let format = outputFormat
         let quality = exportQuality
@@ -694,7 +703,7 @@ final class AppStore: ObservableObject {
                 previewMode = .output
                 errorMessage = nil
             } catch {
-                errorMessage = "輸出失敗：" + Self.describe(error)
+                errorMessage = String(localized: "輸出失敗：\(Self.describe(error))")
             }
             exportStatus = nil
             exportProgress = nil
@@ -802,7 +811,7 @@ final class AppStore: ObservableObject {
     static func describe(_ error: Error) -> String {
         let ns = error as NSError
         if ns.domain == "com.apple.ScreenCaptureKit.SCStreamErrorDomain" && ns.code == -3801 {
-            return "沒有螢幕錄影權限：請到「系統設定 › 隱私權與安全性 › 螢幕與系統錄音」允許，然後重新啟動 App。"
+            return String(localized: "沒有螢幕錄影權限：請到「系統設定 › 隱私權與安全性 › 螢幕與系統錄音」允許，然後重新啟動 App。")
         }
         return error.localizedDescription
     }

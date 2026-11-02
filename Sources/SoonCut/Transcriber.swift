@@ -14,7 +14,7 @@ enum TranscribeError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noAudio: return "這個片段沒有聲音，無法轉寫。"
+        case .noAudio: return String(localized: "這個片段沒有聲音，無法轉寫。")
         }
     }
 }

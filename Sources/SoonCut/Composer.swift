@@ -3,7 +3,7 @@ import CoreGraphics
 
 enum ComposerError: LocalizedError {
     case empty
-    var errorDescription: String? { "沒有可以拼接的片段。" }
+    var errorDescription: String? { String(localized: "沒有可以拼接的片段。") }
 }
 
 /// 把多個片段（依剪輯點）接成一條時間軸；尺寸不同的片段等比縮放置中到第一個片段的畫布

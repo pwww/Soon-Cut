@@ -1,10 +1,21 @@
 import Foundation
 
 enum OutputStatus: String, Codable, CaseIterable, Identifiable {
+    // ⚠️ rawValue 會寫進 exports.json，**不要為了翻譯而改動**——
+    // 改了之後舊的輸出紀錄會解不開，使用者的「已上傳／封存」整批消失。
+    // 顯示一律走 `label`。
     case latest = "最新"
     case uploaded = "已上傳"
     case archived = "封存"
     var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .latest: return String(localized: "最新")
+        case .uploaded: return String(localized: "已上傳")
+        case .archived: return String(localized: "封存")
+        }
+    }
 }
 
 struct ExportItem: Codable, Identifiable {

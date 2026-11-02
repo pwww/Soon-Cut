@@ -8,8 +8,8 @@ enum RecorderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .displayNotFound: return "找不到框選範圍所在的螢幕，請重新框選。"
-        case .notRecording: return "目前沒有在錄影。"
+        case .displayNotFound: return String(localized: "找不到框選範圍所在的螢幕，請重新框選。")
+        case .notRecording: return String(localized: "目前沒有在錄影。")
         }
     }
 }
