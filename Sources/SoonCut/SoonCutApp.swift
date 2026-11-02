@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let store = AppStore()
     private var panel: FloatingPanel?
     private var closeObserver: NSObjectProtocol?
+    private var miniObservers: [NSObjectProtocol] = []
     private let onboarding = OnboardingWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -45,6 +46,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated { self?.store.panelVisible = false }
         }
 
+        // 縮到 Dock 時範圍框也收起來，還原時再出現
+        miniObservers = [
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didMiniaturizeNotification, object: panel, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.store.panelVisible = false }
+            },
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didDeminiaturizeNotification, object: panel, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.store.panelVisible = true }
+            }
+        ]
+
         store.showOnboarding = { [weak self] in self?.onboarding.show() }
         store.appDidLaunch()
         if OnboardingWindowController.shouldShowOnLaunch {
@@ -56,6 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // 點 Dock 圖示時把浮動視窗叫回來
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if panel?.isMiniaturized == true { panel?.deminiaturize(nil) }
         panel?.orderFrontRegardless()
         store.panelVisible = true
         return true
