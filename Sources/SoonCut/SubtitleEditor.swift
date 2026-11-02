@@ -29,10 +29,19 @@ struct SubtitleEditor: View {
             languageBar
             actionBar
 
-            if store.subtitlesOutdated {
-                Text("片段在轉寫後有改動，字幕時間可能對不上，建議重新轉寫。")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+            if store.subtitlesOutdated && !store.isTranscribing {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                    Text("片段在轉寫後有變動，舊字幕先不套用到預覽和輸出。")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("重新轉寫") { store.transcribeSequence() }
+                    Button("仍要套用") { store.keepOutdatedSubtitles() }
+                        .help("只剪了一點點、字幕時間差不多時可以沿用")
+                }
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .controlSize(.small)
             }
 
             subtitleList
@@ -47,6 +56,7 @@ struct SubtitleEditor: View {
             if isRecording { player.pause() }
         }
         .onChange(of: store.subtitles) { refreshOverlay() }
+        .onChange(of: store.subtitlesOutdated) { refreshOverlay() }
         .translationTask(store.translationConfig) { session in
             await translate(with: session)
         }
@@ -206,6 +216,7 @@ struct SubtitleEditor: View {
                     )
                 }
             }
+            .opacity(store.subtitlesOutdated ? 0.45 : 1)
         }
         .frame(minHeight: 70, maxHeight: .infinity)
         .overlay {
@@ -233,7 +244,7 @@ struct SubtitleEditor: View {
             let newCanvas = store.outputFormat.canvas(base: result.renderSize)
             canvas = newCanvas
             duration = result.duration
-            Renderer.prepareOverlay(overlay, subtitles: store.subtitles, canvas: newCanvas,
+            Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, canvas: newCanvas,
                                     watermark: Licensing.showsWatermark)
             let item = AVPlayerItem(asset: result.composition)
             item.videoComposition = Renderer.videoComposition(for: result.composition, canvas: newCanvas, overlay: overlay)
@@ -251,7 +262,7 @@ struct SubtitleEditor: View {
     /// 字幕改了：更新疊圖；暫停中的畫面重畫一次
     private func refreshOverlay() {
         guard canvas.width > 0 else { return }
-        Renderer.prepareOverlay(overlay, subtitles: store.subtitles, canvas: canvas,
+        Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, canvas: canvas,
                                 watermark: Licensing.showsWatermark)
         if player.rate == 0 {
             player.seek(to: player.currentTime(), toleranceBefore: .zero, toleranceAfter: .zero)

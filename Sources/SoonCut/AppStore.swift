@@ -44,7 +44,9 @@ final class AppStore: ObservableObject {
     @Published private(set) var elapsed: TimeInterval = 0
 
     // MARK: 片段
-    @Published var clips: [Clip] = []
+    @Published var clips: [Clip] = [] {
+        didSet { pruneUnrelatedSubtitles() }
+    }
     @Published var selectedClipID: URL?
     @Published var previewMode: PreviewMode = .clip
 
@@ -477,6 +479,29 @@ final class AppStore: ObservableObject {
         saveSubtitles()
     }
 
+    /// 預覽與輸出實際使用的字幕：片段改過、字幕對不上時先不套用
+    var effectiveSubtitles: [SubtitleSegment] {
+        subtitlesOutdated ? [] : subtitles
+    }
+
+    /// 片段改過但仍要沿用舊字幕
+    func keepOutdatedSubtitles() {
+        subtitlesKey = sequenceKey
+        saveSubtitles()
+    }
+
+    /// 字幕對應的片段都不在「剪輯片段」裡了（刪掉或移到暫存）→ 清掉舊字幕
+    private func pruneUnrelatedSubtitles() {
+        guard !subtitles.isEmpty || !sourceSubtitles.isEmpty, !isTranscribing else { return }
+        let subtitleFiles = Set((subtitlesKey ?? "").split(separator: "|").compactMap {
+            $0.split(separator: "@").first.map(String.init)
+        })
+        let currentFiles = Set(activeClips.map { $0.url.lastPathComponent })
+        if subtitleFiles.isDisjoint(with: currentFiles) {
+            clearSubtitles()
+        }
+    }
+
     func clearSubtitles() {
         subtitles = []
         sourceSubtitles = []
@@ -518,7 +543,7 @@ final class AppStore: ObservableObject {
         Task {
             do {
                 let duration = try await Exporter.export(
-                    clips: activeClips, subtitles: subtitles,
+                    clips: activeClips, subtitles: effectiveSubtitles,
                     format: format, quality: quality, to: url,
                     progress: { [weak self] p in
                         Task { @MainActor in
