@@ -4,12 +4,14 @@
 
 <h1 align="center">Soon-Cut</h1>
 
+<h3 align="center">Screen Recorder &amp; Auto Captions</h3>
+
 <p align="center">
   <b>English</b> ｜ <a href="README.zh-TW.md">繁體中文</a>
 </p>
 
 <p align="center">
-  Watch, clip, caption, share — a floating Mac tool that turns what's on your screen into a subtitled short video in minutes.
+  The easiest way to record your Mac screen, auto-generate captions in any language, and turn it into a short video ready to share — made for tutorials and quick explanations.
 </p>
 
 ## Contents

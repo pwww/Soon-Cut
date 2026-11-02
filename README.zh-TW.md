@@ -4,12 +4,14 @@
 
 <h1 align="center">Soon-Cut</h1>
 
+<h3 align="center">螢幕錄影＋自動字幕</h3>
+
 <p align="center">
   <a href="README.md">English</a> ｜ <b>繁體中文</b>
 </p>
 
 <p align="center">
-  邊看、邊錄、上字幕、拖去發 —— 把螢幕上的內容，幾分鐘做成有字幕的短影音的 Mac 浮動小工具。
+  超方便的 Mac 螢幕錄影工具：自動產生字幕、一鍵翻成其他語言，馬上轉成可以分享的短影片，做教學、講解、溝通都好用。
 </p>
 
 ## 目錄
