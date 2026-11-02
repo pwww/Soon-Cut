@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import AVFoundation
+import Translation
 
 enum PreviewMode: String, CaseIterable, Identifiable {
     case clip = "剪輯"
@@ -13,6 +14,8 @@ enum PreviewMode: String, CaseIterable, Identifiable {
 private struct SubtitleFile: Codable {
     var sequenceKey: String
     var segments: [SubtitleSegment]
+    var sourceSegments: [SubtitleSegment]?   // 原文（語音語言）
+    var spokenLanguage: String?              // Whisper 語言代碼
 }
 
 @MainActor
@@ -48,6 +51,21 @@ final class AppStore: ObservableObject {
     // MARK: 字幕
     @Published var subtitles: [SubtitleSegment] = []
     @Published private(set) var subtitlesKey: String?
+    /// 轉寫出來的原文（語音語言）；切換字幕語言時從這裡重新翻譯
+    @Published private(set) var sourceSubtitles: [SubtitleSegment] = []
+    /// 實際的語音語言（Whisper 代碼，例如 zh、ja）
+    @Published private(set) var spokenLanguage: String?
+    @Published var speechLanguage: SpeechLanguage = SpeechLanguage(rawValue: UserDefaults.standard.string(forKey: "speechLanguage") ?? "") ?? .zh {
+        didSet { UserDefaults.standard.set(speechLanguage.rawValue, forKey: "speechLanguage") }
+    }
+    @Published var subtitleLanguage: SubtitleLanguage = SubtitleLanguage(rawValue: UserDefaults.standard.string(forKey: "subtitleLanguage") ?? "") ?? .same {
+        didSet {
+            UserDefaults.standard.set(subtitleLanguage.rawValue, forKey: "subtitleLanguage")
+            if oldValue != subtitleLanguage { applySubtitleLanguage() }
+        }
+    }
+    /// 交給字幕畫面的 .translationTask 執行 Apple 本機翻譯
+    @Published var translationConfig: TranslationSession.Configuration?
     @Published private(set) var subtitleStatus: String?        // 目前步驟標題
     @Published private(set) var subtitleStep: String?          // 例如「1/3」
     @Published private(set) var subtitleDetail: String?        // 這一步在做什麼
@@ -288,11 +306,19 @@ final class AppStore: ObservableObject {
                         "轉寫字幕",
                         firstTime ? "模型準備好了，正在轉寫，通常比影片長度快很多。" : nil)
                 let result = try await Composer.build(clips: currentClips)
-                let segments = try await transcriber.transcribe(asset: result.composition)
-                subtitles = segments
+                let transcript = try await transcriber.transcribe(asset: result.composition,
+                                                                  language: speechLanguage.whisperCode)
+                sourceSubtitles = transcript.segments
+                spokenLanguage = transcript.language
                 subtitlesKey = key
-                saveSubtitles()
                 errorMessage = nil
+                stopDownloadMonitor()
+                if subtitleLanguage.needsTranslation(from: transcript.language) {
+                    startTranslation()   // 翻譯完才結束進度顯示
+                    return
+                }
+                subtitles = localized(sourceSubtitles)
+                saveSubtitles()
             } catch {
                 errorMessage = "轉寫失敗：" + Self.describe(error)
             }
@@ -382,6 +408,64 @@ final class AppStore: ObservableObject {
         return total
     }
 
+    // MARK: - 字幕語言與翻譯
+
+    /// 語音是中文時，依字幕語言決定繁簡；其他情況原文照用
+    private func localized(_ segments: [SubtitleSegment]) -> [SubtitleSegment] {
+        guard spokenLanguage == "zh", subtitleLanguage == .zhHans else { return segments }
+        return segments.map { var s = $0; s.text = ChineseScript.toSimplified(s.text); return s }
+    }
+
+    /// 切換字幕語言：已經有原文就直接重新產生（會覆蓋手動修改）
+    private func applySubtitleLanguage() {
+        guard !sourceSubtitles.isEmpty, let spoken = spokenLanguage, !isTranscribing else { return }
+        if subtitleLanguage.needsTranslation(from: spoken) {
+            startTranslation()
+        } else {
+            subtitles = localized(sourceSubtitles)
+            saveSubtitles()
+        }
+    }
+
+    private func startTranslation() {
+        guard let spoken = spokenLanguage, let target = subtitleLanguage.localeIdentifier else { return }
+        // 中文原文已經是繁體
+        let source = Locale.Language(identifier: spoken == "zh" ? "zh-Hant" : spoken)
+        let config = TranslationSession.Configuration(source: source, target: Locale.Language(identifier: target))
+        setStep(nil, "翻譯成\(subtitleLanguage.label)",
+                "使用 macOS 內建的本機翻譯，不會上傳。第一次翻譯某種語言時，系統會請你下載語言包。")
+        if translationConfig == config {
+            translationConfig?.invalidate()   // 同樣的設定也要重新跑一次
+        } else {
+            translationConfig = config
+        }
+    }
+
+    /// 字幕畫面翻譯完成後呼叫
+    func applyTranslations(_ translated: [String: String]) {
+        subtitles = sourceSubtitles.map { seg in
+            var s = seg
+            if let t = translated[seg.id.uuidString] { s.text = t }
+            return s
+        }
+        saveSubtitles()
+        finishSubtitleStatus()
+    }
+
+    func translationFailed(_ error: Error) {
+        errorMessage = "翻譯失敗：" + Self.describe(error) + "（字幕先保留原文）"
+        subtitles = sourceSubtitles
+        saveSubtitles()
+        finishSubtitleStatus()
+    }
+
+    private func finishSubtitleStatus() {
+        subtitleStatus = nil
+        subtitleStep = nil
+        subtitleDetail = nil
+        subtitleStatusStart = nil
+    }
+
     func updateSubtitle(id: UUID, text: String) {
         guard let i = subtitles.firstIndex(where: { $0.id == id }) else { return }
         subtitles[i].text = text
@@ -395,6 +479,8 @@ final class AppStore: ObservableObject {
 
     func clearSubtitles() {
         subtitles = []
+        sourceSubtitles = []
+        spokenLanguage = nil
         subtitlesKey = nil
         saveSubtitles()
     }
@@ -402,7 +488,8 @@ final class AppStore: ObservableObject {
     private var subtitlesURL: URL { ClipStorage.rawDir.appendingPathComponent("subtitles.json") }
 
     private func saveSubtitles() {
-        let file = SubtitleFile(sequenceKey: subtitlesKey ?? "", segments: subtitles)
+        let file = SubtitleFile(sequenceKey: subtitlesKey ?? "", segments: subtitles,
+                                sourceSegments: sourceSubtitles, spokenLanguage: spokenLanguage)
         if let data = try? JSONEncoder().encode(file) {
             try? data.write(to: subtitlesURL, options: .atomic)
         }
@@ -412,6 +499,8 @@ final class AppStore: ObservableObject {
         guard let data = try? Data(contentsOf: subtitlesURL),
               let file = try? JSONDecoder().decode(SubtitleFile.self, from: data) else { return }
         subtitles = file.segments
+        sourceSubtitles = file.sourceSegments ?? file.segments
+        spokenLanguage = file.spokenLanguage
         subtitlesKey = file.sequenceKey.isEmpty ? nil : file.sequenceKey
     }
 

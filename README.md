@@ -30,7 +30,7 @@
 - **Floating panel** that stays on top without stealing focus from your browser or video player
 - **Region capture** with system audio; one click to lock 9:16
 - **Clip editing**: trim with a filmstrip, drag to reorder, park clips in a staging area
-- **On-device captions** in Traditional Chinese with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift); edit line by line
+- **On-device captions** with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) in 10+ spoken languages, translated on-device with Apple Translation when you want another subtitle language; edit line by line
 - **Multi-ratio export**: original, 9:16, 4:5, 1:1, 16:9 with blurred background, platform hints and length warnings
 - **Three quality levels**: 1080p, 720p, 540p with estimated file size
 - **Drag to upload**: drop the finished video straight into a web upload box
@@ -107,7 +107,7 @@ Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the 
 
 ### Step 4 — Add captions
 
-Open the **Captions** (字幕) tab and click **Generate captions** (產生字幕). The first time, Soon-Cut downloads a 1.6 GB speech model; after that, captions take seconds. Click a timestamp to jump there, edit any line, or delete it.
+Open the **Captions** (字幕) tab. Choose the spoken language (or Auto detect) and the subtitle language, then click **Generate captions** (產生字幕). If the two differ, Soon-Cut translates on your Mac with Apple Translation; macOS may ask you to download a language pack the first time. The first time, Soon-Cut downloads a 1.6 GB speech model; after that, captions take seconds. Click a timestamp to jump there, edit any line, or delete it.
 
 <p align="center"><img src="docs/images/step4-subtitles.png" width="720" alt="Add captions"></p>
 

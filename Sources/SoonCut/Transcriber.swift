@@ -86,15 +86,17 @@ actor Transcriber {
     }
 
     /// 轉寫整條拼接好的時間軸（AVComposition）或單一影片
-    func transcribe(asset: AVAsset) async throws -> [SubtitleSegment] {
+    /// - Parameter language: Whisper 語言代碼；nil = 自動偵測
+    /// - Returns: 字幕句子，以及實際的語音語言代碼。中文一律先轉成繁體。
+    func transcribe(asset: AVAsset, language: String?) async throws -> (segments: [SubtitleSegment], language: String) {
         let audioURL = try await Self.extractAudio(from: asset)
         defer { try? FileManager.default.removeItem(at: audioURL) }
 
         let whisper = try await loadModel()
         var options = DecodingOptions()
         options.task = .transcribe
-        options.language = "zh"
-        options.detectLanguage = false
+        options.language = language
+        options.detectLanguage = (language == nil)
         options.usePrefillPrompt = true
         options.temperature = 0
         options.skipSpecialTokens = true
@@ -102,18 +104,20 @@ actor Transcriber {
         options.chunkingStrategy = .vad
 
         let results = try await whisper.transcribe(audioPath: audioURL.path, decodeOptions: options)
-        return results.flatMap { $0.segments }.compactMap { seg in
-            let text = Self.clean(seg.text)
+        let spoken = language ?? results.first?.language ?? "zh"
+        let segments: [SubtitleSegment] = results.flatMap { $0.segments }.compactMap { seg in
+            let text = Self.clean(seg.text, chinese: spoken == "zh")
             guard !text.isEmpty else { return nil }
             return SubtitleSegment(start: Double(seg.start), end: Double(seg.end), text: text)
         }
+        return (segments, spoken)
     }
 
-    /// 去掉特殊 token、轉繁體（系統內建 ICU 轉換，字級轉換；台灣用語轉換之後可換 OpenCC）
-    static func clean(_ raw: String) -> String {
+    /// 去掉特殊 token；中文轉成繁體（只有中文才轉，避免改到日文漢字）
+    static func clean(_ raw: String, chinese: Bool) -> String {
         let noTokens = raw.replacingOccurrences(of: "<\\|[^|]*\\|>", with: "", options: .regularExpression)
         let trimmed = noTokens.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.applyingTransform(StringTransform("Hans-Hant"), reverse: false) ?? trimmed
+        return chinese ? ChineseScript.toTraditional(trimmed) : trimmed
     }
 
     /// 從 MP4 抽出音軌成暫存 m4a

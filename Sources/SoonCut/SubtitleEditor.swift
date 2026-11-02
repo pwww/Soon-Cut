@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import Translation
 
 // MARK: - 字幕：拼接預覽（依輸出比例）＋字幕＋逐句編輯＋輸出
 
@@ -25,6 +26,7 @@ struct SubtitleEditor: View {
             qualityBar
             platformBar
 
+            languageBar
             actionBar
 
             if store.subtitlesOutdated {
@@ -45,6 +47,52 @@ struct SubtitleEditor: View {
             if isRecording { player.pause() }
         }
         .onChange(of: store.subtitles) { refreshOverlay() }
+        .translationTask(store.translationConfig) { session in
+            await translate(with: session)
+        }
+    }
+
+    // MARK: 語言
+
+    private var languageBar: some View {
+        HStack(spacing: 10) {
+            Picker("語音", selection: $store.speechLanguage) {
+                ForEach(SpeechLanguage.allCases) { lang in
+                    Text(lang.label).tag(lang)
+                }
+            }
+            .help("影片裡說話的語言；不確定就選「自動偵測」。改了要重新轉寫")
+            .disabled(store.isTranscribing)
+
+            Picker("字幕", selection: $store.subtitleLanguage) {
+                ForEach(SubtitleLanguage.allCases) { lang in
+                    Text(lang.label).tag(lang)
+                }
+            }
+            .help("跟語音不同時，用 macOS 內建翻譯在本機翻譯。切換會重新產生字幕，手動修改會被覆蓋")
+            .disabled(store.isTranscribing)
+        }
+        .font(.caption)
+        .controlSize(.small)
+    }
+
+    /// 用 Apple 內建翻譯把原文翻成字幕語言
+    private func translate(with session: TranslationSession) async {
+        let items = await MainActor.run { store.sourceSubtitles }
+        guard !items.isEmpty else { return }
+        do {
+            let requests = items.map {
+                TranslationSession.Request(sourceText: $0.text, clientIdentifier: $0.id.uuidString)
+            }
+            let responses = try await session.translations(from: requests)
+            var map: [String: String] = [:]
+            for r in responses {
+                if let id = r.clientIdentifier { map[id] = r.targetText }
+            }
+            await MainActor.run { store.applyTranslations(map) }
+        } catch {
+            await MainActor.run { store.translationFailed(error) }
+        }
     }
 
     // MARK: 輸出比例
@@ -121,7 +169,7 @@ struct SubtitleEditor: View {
                     Label(store.subtitles.isEmpty ? "產生字幕" : "重新轉寫", systemImage: "captions.bubble")
                 }
                 .disabled(store.isExporting)
-                .help(store.subtitles.isEmpty ? "用本機 Whisper 轉寫繁體中文字幕" : "重新轉寫會覆蓋目前的字幕修改")
+                .help(store.subtitles.isEmpty ? "用本機 Whisper 轉寫字幕" : "重新轉寫會覆蓋目前的字幕修改")
             }
             Spacer()
             Button {
@@ -163,8 +211,8 @@ struct SubtitleEditor: View {
         .overlay {
             if store.subtitles.isEmpty && store.subtitleStatus == nil {
                 Text(Transcriber.isModelDownloaded
-                     ? "按「產生字幕」轉寫繁體中文字幕；不加字幕也可以直接輸出"
-                     : "按「產生字幕」轉寫繁體中文字幕。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出")
+                     ? "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出"
+                     : "選好語音與字幕語言，按「產生字幕」。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
