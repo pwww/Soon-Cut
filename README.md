@@ -92,7 +92,7 @@ Click **Record** (錄影) or press **⇧⌘R**. The outline turns red while reco
 
 ### Step 3 — Trim and arrange
 
-Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the start and end. To cut out a middle part, move the white playhead to a spot and click **Split here** (在這裡剪開, ⌘B); each part gets its own handles. Drag thumbnails left or right to reorder. Drag a clip down into the **staging area** to leave it out of this video without deleting it.
+Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the start and end. To cut out a middle part, move the white playhead and click **Split here** (在這裡剪開, ⌘B). The yellow range becomes two ranges in the same clip, each with its own handles; drag them apart and the gap is skipped in preview and export. **Delete this part** (刪除這段) removes the range under the playhead. Drag thumbnails left or right to reorder. Drag a clip down into the **staging area** to leave it out of this video without deleting it.
 
 ### Step 4 — Add captions
 

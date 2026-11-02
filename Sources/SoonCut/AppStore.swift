@@ -251,11 +251,13 @@ final class AppStore: ObservableObject {
         NSWorkspace.shared.open(ClipStorage.rawDir)
     }
 
-    func setTrim(clipID: UUID, start: Double, end: Double) {
+    /// 更新一個片段的保留區段（拖黃色把手、剪開、刪除區段都走這裡）
+    func setRanges(clipID: UUID, _ ranges: [ClipRange]) {
         guard let i = clips.firstIndex(where: { $0.id == clipID }) else { return }
-        let startChanged = abs(clips[i].trimStart - start) > 0.05
-        clips[i].trimStart = start
-        clips[i].trimEnd = end
+        let cleaned = ClipStorage.sanitize(ranges, duration: clips[i].duration)
+        guard !cleaned.isEmpty else { return }
+        let startChanged = abs(clips[i].trimStart - cleaned[0].start) > 0.05
+        clips[i].ranges = cleaned
         ClipStorage.saveLibrary(clips)
         if startChanged { refreshThumbnail(clipID) }
     }
@@ -268,25 +270,39 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// 能不能在 time 把這一段剪開（兩邊都至少要留最短長度）
+    /// 能不能在 time 把所在的黃色區段剪開（兩邊都至少要留最短長度）
     func canSplit(_ id: UUID, at time: Double) -> Bool {
-        guard let c = clips.first(where: { $0.id == id }) else { return false }
-        return time > c.trimStart + ClipStorage.minClipLength && time < c.trimEnd - ClipStorage.minClipLength
+        guard let c = clips.first(where: { $0.id == id }),
+              let k = c.rangeIndex(containing: time) else { return false }
+        let r = c.ranges[k]
+        return time - r.start >= ClipStorage.minClipLength && r.end - time >= ClipStorage.minClipLength
     }
 
-    /// 在 time 把一段剪成兩段；後半段緊接在後面並被選取，方便繼續剪
-    func splitClip(_ id: UUID, at time: Double) {
-        guard canSplit(id, at: time), let i = clips.firstIndex(where: { $0.id == id }) else { return }
-        var first = clips[i]
-        var second = clips[i]
-        second.id = UUID()
-        first.trimEnd = time
-        second.trimStart = time
-        clips[i] = first
-        clips.insert(second, at: i + 1)
-        selectedClipID = second.id
-        ClipStorage.saveLibrary(clips)
-        refreshThumbnail(second.id)
+    /// 在 time 把所在的區段剪成兩段（同一個片段裡，膠卷條上變兩個黃色區塊）
+    func splitRange(_ id: UUID, at time: Double) {
+        guard canSplit(id, at: time),
+              let c = clips.first(where: { $0.id == id }),
+              let k = c.rangeIndex(containing: time) else { return }
+        var ranges = c.ranges
+        let r = ranges[k]
+        ranges[k] = ClipRange(start: r.start, end: time)
+        ranges.insert(ClipRange(start: time, end: r.end), at: k + 1)
+        setRanges(clipID: id, ranges)
+    }
+
+    /// 能不能刪掉 time 所在的區段（至少要留一段）
+    func canRemoveRange(_ id: UUID, at time: Double) -> Bool {
+        guard let c = clips.first(where: { $0.id == id }) else { return false }
+        return c.ranges.count > 1 && c.rangeIndex(containing: time) != nil
+    }
+
+    func removeRange(_ id: UUID, at time: Double) {
+        guard canRemoveRange(id, at: time),
+              let c = clips.first(where: { $0.id == id }),
+              let k = c.rangeIndex(containing: time) else { return }
+        var ranges = c.ranges
+        ranges.remove(at: k)
+        setRanges(clipID: id, ranges)
     }
 
     // MARK: - 匯入影片
@@ -387,7 +403,9 @@ final class AppStore: ObservableObject {
 
     /// 片段順序或剪輯點改變時，拼接預覽要重建、字幕可能要重轉
     var sequenceKey: String {
-        activeClips.map { "\($0.url.lastPathComponent)@\($0.trimStart)-\($0.trimEnd)" }.joined(separator: "|")
+        activeClips.map { clip in
+            clip.url.lastPathComponent + "@" + clip.ranges.map { "\($0.start)-\($0.end)" }.joined(separator: ",")
+        }.joined(separator: "|")
     }
 
     // MARK: - 字幕

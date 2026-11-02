@@ -1,7 +1,7 @@
 import SwiftUI
 import AVKit
 
-// MARK: - 單一片段：預覽＋膠卷條剪頭尾
+// MARK: - 單一片段：預覽＋膠卷條（多個黃色區段）
 
 struct ClipEditor: View {
     @EnvironmentObject var store: AppStore
@@ -9,10 +9,14 @@ struct ClipEditor: View {
     let isRecording: Bool
 
     @State private var player = AVPlayer()
-    @State private var draftStart: Double = 0
-    @State private var draftEnd: Double = 0
+    @State private var draftRanges: [ClipRange] = []
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
+
+    private var keptLength: Double { draftRanges.reduce(0) { $0 + $1.length } }
+    private var currentRangeIndex: Int? {
+        draftRanges.firstIndex { currentTime >= $0.start && currentTime < $0.end }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -24,8 +28,8 @@ struct ClipEditor: View {
             FilmstripTrimmer(
                 url: clip.url,
                 duration: clip.duration,
-                start: $draftStart,
-                end: $draftEnd,
+                ranges: $draftRanges,
+                activeIndex: currentRangeIndex,
                 playhead: currentTime,
                 onScrub: { t in
                     player.pause()
@@ -33,44 +37,56 @@ struct ClipEditor: View {
                     player.seek(to: cmTime(t), toleranceBefore: .zero, toleranceAfter: .zero)
                 },
                 onCommit: {
-                    store.setTrim(clipID: clip.id, start: draftStart, end: draftEnd)
-                    applyTrimToPlayer(seekToStart: true)
+                    store.setRanges(clipID: clip.id, draftRanges)
+                    applyRangesToPlayer()
                 }
             )
             .frame(height: 48)
             .padding(.horizontal, 6)   // 把手離視窗縮放邊框遠一點
 
-            HStack {
-                Text("\(formatTime(draftStart)) – \(formatTime(draftEnd))　長度 \(formatTime(draftEnd - draftStart))")
+            HStack(spacing: 8) {
+                Text("保留 \(draftRanges.count) 段　共 \(formatTime(keptLength))")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button {
-                    store.splitClip(clip.id, at: currentTime)
+                    store.splitRange(clip.id, at: currentTime)
                 } label: {
                     Label("在這裡剪開", systemImage: "scissors")
                 }
-                .controlSize(.small)
                 .disabled(!store.canSplit(clip.id, at: currentTime))
                 .keyboardShortcut("b", modifiers: .command)
-                .help("在白色播放線的位置把這段剪成兩段（⌘B），各自再拉長度")
-                if draftStart > 0.01 || draftEnd < clip.duration - 0.01 {
+                .help("在白色播放線的位置把黃色區段剪成兩段（⌘B），再拉把手留出要跳過的部分")
+
+                Button {
+                    store.removeRange(clip.id, at: currentTime)
+                } label: {
+                    Label("刪除這段", systemImage: "trash")
+                }
+                .disabled(!store.canRemoveRange(clip.id, at: currentTime))
+                .help("刪掉播放線所在的黃色區段")
+
+                if clip.isTrimmed {
                     Button("還原") {
-                        draftStart = 0
-                        draftEnd = clip.duration
-                        store.setTrim(clipID: clip.id, start: 0, end: clip.duration)
-                        applyTrimToPlayer(seekToStart: true)
+                        store.setRanges(clipID: clip.id, [ClipRange(start: 0, end: clip.duration)])
                     }
                     .buttonStyle(.borderless)
-                    .font(.caption)
+                    .help("回到完整長度、只有一段")
                 }
             }
+            .controlSize(.small)
+            .font(.caption)
         }
         .onAppear {
             reload()
             addObserver()
         }
         .onChange(of: clip.id) { reload() }
+        .onChange(of: clip.ranges) {
+            // 剪開、刪除、還原後同步
+            draftRanges = clip.ranges
+            applyRangesToPlayer()
+        }
         .onChange(of: isRecording) {
             if isRecording { player.pause() }
         }
@@ -79,24 +95,48 @@ struct ClipEditor: View {
             removeObserver()
         }
         .onReceive(NotificationCenter.default.publisher(for: AVPlayerItem.didPlayToEndTimeNotification)) { note in
-            // 播到剪輯終點後回到起點，下次按播放從頭開始
+            // 播完最後一段回到第一段開頭
             if let item = note.object as? AVPlayerItem, item === player.currentItem {
-                player.seek(to: cmTime(draftStart), toleranceBefore: .zero, toleranceAfter: .zero)
+                seek(to: draftRanges.first?.start ?? 0)
             }
         }
     }
 
     private func reload() {
-        draftStart = clip.trimStart
-        draftEnd = clip.trimEnd > 0 ? clip.trimEnd : clip.duration
+        draftRanges = clip.ranges
         player.replaceCurrentItem(with: AVPlayerItem(url: clip.url))
-        applyTrimToPlayer(seekToStart: true)
+        applyRangesToPlayer()
+        seek(to: draftRanges.first?.start ?? 0)
+    }
+
+    private func applyRangesToPlayer() {
+        player.currentItem?.forwardPlaybackEndTime = cmTime(draftRanges.last?.end ?? clip.duration)
+    }
+
+    private func seek(to t: Double) {
+        currentTime = t
+        player.seek(to: cmTime(t), toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
     private func addObserver() {
         guard timeObserver == nil else { return }
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 20), queue: .main) { t in
-            currentTime = CMTimeGetSeconds(t)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { t in
+            let now = CMTimeGetSeconds(t)
+            currentTime = now
+            skipGapIfNeeded(at: now)
+        }
+    }
+
+    /// 播放中走到沒選的空隙：跳到下一個黃色區段；後面沒有了就停在第一段開頭
+    private func skipGapIfNeeded(at now: Double) {
+        guard player.rate != 0, !draftRanges.isEmpty else { return }
+        let inside = draftRanges.contains { now >= $0.start - 0.03 && now < $0.end }
+        guard !inside else { return }
+        if let next = draftRanges.first(where: { $0.start > now }) {
+            seek(to: next.start)
+        } else {
+            player.pause()
+            seek(to: draftRanges[0].start)
         }
     }
 
@@ -104,24 +144,16 @@ struct ClipEditor: View {
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         timeObserver = nil
     }
-
-    private func applyTrimToPlayer(seekToStart: Bool) {
-        player.currentItem?.forwardPlaybackEndTime = cmTime(draftEnd)
-        if seekToStart {
-            currentTime = draftStart
-            player.seek(to: cmTime(draftStart), toleranceBefore: .zero, toleranceAfter: .zero)
-        }
-    }
 }
 
-// MARK: - 膠卷條（iPhone 相簿式剪頭尾）
+// MARK: - 膠卷條：多個黃色區段，各自有左右把手
 
 struct FilmstripTrimmer: View {
     let url: URL
     let duration: Double
-    @Binding var start: Double
-    @Binding var end: Double
-    var playhead: Double? = nil
+    @Binding var ranges: [ClipRange]
+    var activeIndex: Int?
+    var playhead: Double?
     var onScrub: (Double) -> Void
     var onCommit: () -> Void
 
@@ -133,11 +165,9 @@ struct FilmstripTrimmer: View {
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
-            let xs = x(for: start, width: width)
-            let xe = x(for: end, width: width)
 
             ZStack(alignment: .topLeading) {
-                // 影格
+                // 影格；拖動＝移動播放位置
                 HStack(spacing: 0) {
                     ForEach(Array(frames.enumerated()), id: \.offset) { _, img in
                         Image(nsImage: img)
@@ -152,31 +182,62 @@ struct FilmstripTrimmer: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .contentShape(Rectangle())
                 .gesture(
-                    // 在影格上拖動 = 預覽定位（限制在保留範圍內），不改剪輯點
                     DragGesture(minimumDistance: 0, coordinateSpace: .named("strip"))
                         .onChanged { v in
-                            let t = time(for: v.location.x, width: width)
-                            onScrub(min(max(t, start), end))
+                            onScrub(min(max(0, time(for: v.location.x, width: width)), duration))
                         }
                 )
 
-                // 被剪掉的部分變暗
-                Rectangle()
-                    .fill(Color.black.opacity(0.6))
-                    .frame(width: max(0, xs), height: height)
-                Rectangle()
-                    .fill(Color.black.opacity(0.6))
-                    .frame(width: max(0, width - xe), height: height)
-                    .offset(x: xe)
+                // 沒選的空隙變暗
+                ForEach(Array(gaps().enumerated()), id: \.offset) { _, gap in
+                    Rectangle()
+                        .fill(Color.black.opacity(0.62))
+                        .frame(width: max(0, x(for: gap.end, width: width) - x(for: gap.start, width: width)),
+                               height: height)
+                        .offset(x: x(for: gap.start, width: width))
+                        .allowsHitTesting(false)
+                }
 
-                // 保留範圍的黃框
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Color.yellow, lineWidth: 3)
-                    .frame(width: max(handleWidth * 2, xe - xs), height: height)
-                    .offset(x: xs)
-                    .allowsHitTesting(false)
+                // 黃色區段
+                ForEach(ranges.indices, id: \.self) { i in
+                    let xs = x(for: ranges[i].start, width: width)
+                    let xe = x(for: ranges[i].end, width: width)
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(Color.yellow, lineWidth: activeIndex == i ? 4 : 2.5)
+                        .frame(width: max(handleWidth * 2, xe - xs), height: height)
+                        .offset(x: xs)
+                        .allowsHitTesting(false)
 
-                // 播放位置（剪開的位置）
+                    handle(systemImage: "chevron.compact.left")
+                        .offset(x: xs)
+                        .gesture(
+                            DragGesture(minimumDistance: 0, coordinateSpace: .named("strip"))
+                                .onChanged { v in
+                                    let lower = i > 0 ? ranges[i - 1].end : 0
+                                    let upper = ranges[i].end - ClipStorage.minClipLength
+                                    let t = min(max(time(for: v.location.x, width: width), lower), upper)
+                                    ranges[i].start = t
+                                    onScrub(t)
+                                }
+                                .onEnded { _ in onCommit() }
+                        )
+
+                    handle(systemImage: "chevron.compact.right")
+                        .offset(x: max(0, xe - handleWidth))
+                        .gesture(
+                            DragGesture(minimumDistance: 0, coordinateSpace: .named("strip"))
+                                .onChanged { v in
+                                    let lower = ranges[i].start + ClipStorage.minClipLength
+                                    let upper = i < ranges.count - 1 ? ranges[i + 1].start : duration
+                                    let t = min(max(time(for: v.location.x, width: width), lower), upper)
+                                    ranges[i].end = t
+                                    onScrub(t)
+                                }
+                                .onEnded { _ in onCommit() }
+                        )
+                }
+
+                // 播放位置
                 if let p = playhead, p >= 0, p <= duration {
                     Rectangle()
                         .fill(Color.white)
@@ -185,36 +246,22 @@ struct FilmstripTrimmer: View {
                         .offset(x: x(for: p, width: width) - 1, y: -4)
                         .allowsHitTesting(false)
                 }
-
-                // 左把手
-                handle(systemImage: "chevron.compact.left")
-                    .offset(x: xs)
-                    .gesture(
-                        DragGesture(minimumDistance: 0, coordinateSpace: .named("strip"))
-                            .onChanged { v in
-                                let t = time(for: v.location.x, width: width)
-                                start = min(max(0, t), end - ClipStorage.minClipLength)
-                                onScrub(start)
-                            }
-                            .onEnded { _ in onCommit() }
-                    )
-
-                // 右把手
-                handle(systemImage: "chevron.compact.right")
-                    .offset(x: max(0, xe - handleWidth))
-                    .gesture(
-                        DragGesture(minimumDistance: 0, coordinateSpace: .named("strip"))
-                            .onChanged { v in
-                                let t = time(for: v.location.x, width: width)
-                                end = max(min(duration, t), start + ClipStorage.minClipLength)
-                                onScrub(end)
-                            }
-                            .onEnded { _ in onCommit() }
-                    )
             }
             .coordinateSpace(name: "strip")
         }
         .task(id: url) { await loadFrames() }
+    }
+
+    /// 黃色區段以外的空隙（頭、中間、尾）
+    private func gaps() -> [ClipRange] {
+        var result: [ClipRange] = []
+        var cursor: Double = 0
+        for r in ranges {
+            if r.start > cursor { result.append(ClipRange(start: cursor, end: r.start)) }
+            cursor = max(cursor, r.end)
+        }
+        if cursor < duration { result.append(ClipRange(start: cursor, end: duration)) }
+        return result
     }
 
     private func handle(systemImage: String) -> some View {

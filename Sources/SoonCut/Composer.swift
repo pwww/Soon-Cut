@@ -30,29 +30,32 @@ enum Composer {
             let asset = AVURLAsset(url: clip.url)
             guard let srcVideo = try await asset.loadTracks(withMediaType: .video).first else { continue }
             let assetDuration = try await asset.load(.duration)
-            let start = CMTime(seconds: clip.trimStart, preferredTimescale: 600)
-            var duration = CMTime(seconds: clip.trimmedDuration, preferredTimescale: 600)
-            if CMTimeCompare(start + duration, assetDuration) > 0 { duration = assetDuration - start }
-            let sourceRange = CMTimeRange(start: start, duration: duration)
-
-            try videoTrack.insertTimeRange(sourceRange, of: srcVideo, at: cursor)
             let srcAudios = try await asset.loadTracks(withMediaType: .audio)
-            for (k, srcAudio) in srcAudios.enumerated() {
-                if k >= audioTracks.count,
-                   let added = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
-                    audioTracks.append(added)
-                }
-                guard k < audioTracks.count else { break }
-                try audioTracks[k].insertTimeRange(sourceRange, of: srcAudio, at: cursor)
-            }
-
             let natural = try await srcVideo.load(.naturalSize)
             let preferred = try await srcVideo.load(.preferredTransform)
             let rect = CGRect(origin: .zero, size: natural).applying(preferred)
-            segments.append((CMTimeRange(start: cursor, duration: duration),
-                             CGSize(width: abs(rect.width), height: abs(rect.height)),
-                             preferred))
-            cursor = cursor + duration
+            let size = CGSize(width: abs(rect.width), height: abs(rect.height))
+
+            // 一個片段裡的每個黃色區段依序接起來，中間的空隙跳過
+            for r in clip.ranges where r.length >= 0.1 {
+                let start = CMTime(seconds: r.start, preferredTimescale: 600)
+                var duration = CMTime(seconds: r.length, preferredTimescale: 600)
+                if CMTimeCompare(start + duration, assetDuration) > 0 { duration = assetDuration - start }
+                guard CMTimeGetSeconds(duration) > 0.05 else { continue }
+                let sourceRange = CMTimeRange(start: start, duration: duration)
+
+                try videoTrack.insertTimeRange(sourceRange, of: srcVideo, at: cursor)
+                for (k, srcAudio) in srcAudios.enumerated() {
+                    if k >= audioTracks.count,
+                       let added = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                        audioTracks.append(added)
+                    }
+                    guard k < audioTracks.count else { break }
+                    try audioTracks[k].insertTimeRange(sourceRange, of: srcAudio, at: cursor)
+                }
+                segments.append((CMTimeRange(start: cursor, duration: duration), size, preferred))
+                cursor = cursor + duration
+            }
         }
 
         guard let first = segments.first else { throw ComposerError.empty }

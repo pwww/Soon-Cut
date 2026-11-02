@@ -1,18 +1,31 @@
 import AppKit
 import AVFoundation
 
-/// 一個片段＝某個影片檔的一段範圍。同一個檔案剪開後會有好幾個片段。
+/// 片段裡要保留的一段（膠卷條上的一個黃色區塊）
+struct ClipRange: Codable, Equatable, Hashable {
+    var start: Double
+    var end: Double
+    var length: Double { max(0, end - start) }
+}
+
+/// 一個片段＝一個影片檔，可以保留好幾段（剪開後中間的空隙會被跳過）
 struct Clip: Identifiable {
     var id = UUID()
     let url: URL
     var duration: Double
     var thumbnail: NSImage?
-    var trimStart: Double = 0
-    var trimEnd: Double = 0
+    var ranges: [ClipRange] = []
     var isStaged = false   // 在暫存區：不放進這次剪輯與輸出
 
-    var trimmedDuration: Double { max(0, trimEnd - trimStart) }
-    var isTrimmed: Bool { trimStart > 0.01 || trimEnd < duration - 0.01 }
+    var trimStart: Double { ranges.first?.start ?? 0 }
+    var trimEnd: Double { ranges.last?.end ?? duration }
+    var trimmedDuration: Double { ranges.reduce(0) { $0 + $1.length } }
+    var isTrimmed: Bool { ranges.count > 1 || trimStart > 0.01 || trimEnd < duration - 0.01 }
+
+    /// 包含 time 的區段索引
+    func rangeIndex(containing time: Double) -> Int? {
+        ranges.firstIndex { time >= $0.start && time < $0.end }
+    }
 }
 
 /// 片段順序與剪輯點，存在 Raw/library.json（不動原始影片）
@@ -22,6 +35,7 @@ struct LibraryEntry: Codable {
     var trimStart: Double
     var trimEnd: Double
     var staged: Bool?
+    var ranges: [ClipRange]?
 }
 
 enum ClipStorage {
@@ -78,7 +92,8 @@ enum ClipStorage {
     static func saveLibrary(_ clips: [Clip]) {
         let entries = clips.map {
             LibraryEntry(id: $0.id.uuidString, file: $0.url.lastPathComponent,
-                         trimStart: $0.trimStart, trimEnd: $0.trimEnd, staged: $0.isStaged)
+                         trimStart: $0.trimStart, trimEnd: $0.trimEnd, staged: $0.isStaged,
+                         ranges: $0.ranges)
         }
         if let data = try? JSONEncoder().encode(entries) {
             try? data.write(to: libraryURL, options: .atomic)
@@ -98,12 +113,9 @@ enum ClipStorage {
             if base[e.file] == nil { base[e.file] = await makeClip(url: url) }
             guard var clip = base[e.file] else { continue }
             clip.id = e.id.flatMap(UUID.init(uuidString:)) ?? UUID()
-            let end = min(e.trimEnd, clip.duration)
-            let start = min(max(0, e.trimStart), max(0, end - minClipLength))
-            if end - start >= minClipLength {
-                clip.trimStart = start
-                clip.trimEnd = end
-            }
+            let saved = e.ranges ?? [ClipRange(start: e.trimStart, end: e.trimEnd)]
+            let cleaned = sanitize(saved, duration: clip.duration)
+            if !cleaned.isEmpty { clip.ranges = cleaned }
             clip.isStaged = e.staged ?? false
             if clip.trimStart > 0.1 {
                 clip.thumbnail = await thumbnail(for: clip)
@@ -127,7 +139,19 @@ enum ClipStorage {
         let asset = AVURLAsset(url: url)
         let duration = (try? await asset.load(.duration)).map { CMTimeGetSeconds($0) } ?? 0
         let thumb = await frame(of: asset, at: min(0.5, max(duration / 2, 0)), maxSize: 240)
-        return Clip(url: url, duration: duration, thumbnail: thumb, trimStart: 0, trimEnd: duration)
+        return Clip(url: url, duration: duration, thumbnail: thumb,
+                    ranges: [ClipRange(start: 0, end: duration)])
+    }
+
+    /// 排序、限制在影片長度內、去掉太短或重疊的區段
+    static func sanitize(_ ranges: [ClipRange], duration: Double) -> [ClipRange] {
+        var result: [ClipRange] = []
+        for r in ranges.sorted(by: { $0.start < $1.start }) {
+            var x = ClipRange(start: max(0, r.start), end: min(duration, r.end))
+            if let last = result.last, x.start < last.end { x.start = last.end }
+            if x.length >= minClipLength { result.append(x) }
+        }
+        return result
     }
 
     static func frame(of asset: AVAsset, at seconds: Double, maxSize: CGFloat) async -> NSImage? {
