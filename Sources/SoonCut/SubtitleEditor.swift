@@ -326,6 +326,7 @@ struct SubtitleRow: View {
 
 struct OutputView: View {
     @EnvironmentObject var store: AppStore
+    @State private var selectedID: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -338,6 +339,11 @@ struct OutputView: View {
             .labelsHidden()
 
             let items = store.exports(in: store.outputTab)
+            // 預覽：選取的影片；沒選就預覽這一層最新的一支
+            if let current = items.first(where: { $0.id == selectedID }) ?? items.first {
+                ExportPreview(url: current.url)
+                    .frame(minHeight: 140, maxHeight: .infinity)
+            }
             if items.isEmpty {
                 Text(emptyText)
                     .font(.caption)
@@ -347,10 +353,13 @@ struct OutputView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(items) { item in
-                            ExportRow(item: item)
+                            let isSelected = item.id == (items.first(where: { $0.id == selectedID }) ?? items.first)?.id
+                            ExportRow(item: item, isSelected: isSelected)
+                                .onTapGesture { selectedID = item.id }
                         }
                     }
                 }
+                .frame(minHeight: 90, maxHeight: 240)   // 預覽拿剩下的空間
             }
 
             HStack {
@@ -381,6 +390,7 @@ struct OutputView: View {
 struct ExportRow: View {
     @EnvironmentObject var store: AppStore
     let item: ExportItem
+    var isSelected = false
     @State private var thumb: NSImage?
 
     var body: some View {
@@ -428,6 +438,10 @@ struct ExportRow: View {
         }
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary.opacity(0.4)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2)
+        )
         .contentShape(Rectangle())
         .onDrag {
             // 以檔案 URL（public.file-url）拖出：瀏覽器上傳框與 Finder 都直接收到影片檔。
@@ -493,5 +507,26 @@ struct TranscribeStatusView: View {
             text += eta < 60 ? "，剩不到 1 分鐘" : "，約剩 \(Int((eta / 60).rounded(.up))) 分鐘"
         }
         return text
+    }
+}
+
+// MARK: - 輸出影片預覽
+
+struct ExportPreview: View {
+    let url: URL
+    @State private var player = AVPlayer()
+
+    var body: some View {
+        PlayerView(player: player)
+            .background(Color.black)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .onAppear { load() }
+            .onChange(of: url) { load() }
+            .onDisappear { player.pause() }
+    }
+
+    private func load() {
+        player.pause()
+        player.replaceCurrentItem(with: AVPlayerItem(url: url))
     }
 }

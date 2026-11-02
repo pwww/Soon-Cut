@@ -211,7 +211,7 @@ final class AppStore: ObservableObject {
     }
 
     func reveal(_ clip: Clip) {
-        NSWorkspace.shared.activateFileViewerSelecting([clip.url])
+        Self.revealInFinder(clip.url)
     }
 
     func trash(_ clip: Clip) {
@@ -577,7 +577,7 @@ final class AppStore: ObservableObject {
     }
 
     func reveal(_ item: ExportItem) {
-        NSWorkspace.shared.activateFileViewerSelecting([item.url])
+        Self.revealInFinder(item.url)
     }
 
     func trash(_ item: ExportItem) {
@@ -649,6 +649,19 @@ final class AppStore: ObservableObject {
     private static func loadRegion() -> CaptureRegion? {
         guard let data = UserDefaults.standard.data(forKey: "region") else { return nil }
         return try? JSONDecoder().decode(CaptureRegion.self, from: data)
+    }
+
+    /// 在 Finder 中選取檔案並把 Finder 帶到最前面。
+    /// 浮動視窗不會讓本 App 變成作用中，所以要明確叫起 Finder。
+    static func revealInFinder(_ url: URL) {
+        let folder = url.deletingLastPathComponent()
+        let selected = FileManager.default.fileExists(atPath: url.path)
+            && NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: folder.path)
+        if !selected {
+            NSWorkspace.shared.open(folder)
+        }
+        NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first?.activate()
     }
 
     static func describe(_ error: Error) -> String {
