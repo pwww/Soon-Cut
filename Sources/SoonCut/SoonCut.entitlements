@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Mac App Store 強制要求。開源版（Release 組態）不套用這份檔案。 -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- 錄旁白。對應 Info.plist 的 NSMicrophoneUsageDescription。 -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!-- ⚠️ 沒有這一條，ClipStorage 的 .moviesDirectory 會指到沙盒容器裡，
+         使用者在 ~/Movies 永遠找不到自己錄的影片——而且不會有任何錯誤。 -->
+    <key>com.apple.security.assets.movies.read-write</key>
+    <true/>
+
+    <!-- WhisperKit 第一次轉寫要下載模型。沒有這條會靜靜失敗成「轉寫不出來」。 -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- 使用者自己選的輸出位置（存檔對話框）。 -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+</dict>
+</plist>

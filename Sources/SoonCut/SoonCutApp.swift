@@ -30,12 +30,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // 開 StoreKit：讀目前的 entitlement、抓價格、監聽 App 外完成的交易。
+        // 開源版（非 APPSTORE 組態）這個呼叫是空的，不會連任何東西。
+        LicenseStore.shared.start()
+
         NSApp.setActivationPolicy(.regular)
         // 直接把圖示設給 Dock，不受 macOS 圖示快取影響
         if let logo = NSImage(named: "AppLogo") {
             NSApp.applicationIconImage = logo
         }
-        let panel = FloatingPanel(rootView: MainPanelView().environmentObject(store))
+        let panel = FloatingPanel(rootView: MainPanelView()
+            .environmentObject(store)
+            .environmentObject(LicenseStore.shared))
         panel.orderFrontRegardless()
         self.panel = panel
 

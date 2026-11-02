@@ -5,6 +5,19 @@ options:
     macOS: "15.0"
   createIntermediateGroups: true
 
+# 三個組態，對應三種發行方式：
+#   Debug     本機開發
+#   Release   **開源版**（GPL-3.0，自行編譯）——不沙盒、不浮水印、不含 StoreKit
+#   AppStore  Mac App Store 版——沙盒＋強化執行期＋浮水印＋買斷 IAP
+#
+# ⚠️ 開源版刻意維持原樣：從 GitHub clone 下來的人不需要 Apple 開發者帳號、
+#    不需要處理沙盒權限，`xcodebuild -configuration Release` 就能跑。
+#    這是 GPL 版本的承諾，不要為了方便把沙盒設定搬到共用區塊。
+configs:
+  Debug: debug
+  Release: release
+  AppStore: release
+
 packages:
   WhisperKit:
     url: https://github.com/argmaxinc/argmax-oss-swift.git
@@ -20,6 +33,17 @@ targets:
       - package: WhisperKit
         product: WhisperKit
     settings:
+      configs:
+        AppStore:
+          # ⚠️ 這個旗標以前從來沒有被定義過，所以 `#if APPSTORE` 永遠是 false——
+          #    送上去的話免費版不會有浮水印、也不會有付費牆，整組變現靜靜消失。
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
+          ENABLE_APP_SANDBOX: YES          # Mac App Store 強制
+          ENABLE_HARDENED_RUNTIME: YES     # 公證必需
+          CODE_SIGN_ENTITLEMENTS: Sources/SoonCut/SoonCut.entitlements
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: ""
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cc.aicolab.SoonCut
         PRODUCT_NAME: SoonCut
