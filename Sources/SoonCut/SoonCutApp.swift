@@ -30,6 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSApp.setActivationPolicy(.regular)
+        // 直接把圖示設給 Dock，不受 macOS 圖示快取影響
+        if let logo = NSImage(named: "AppLogo") {
+            NSApp.applicationIconImage = logo
+        }
         let panel = FloatingPanel(rootView: MainPanelView().environmentObject(store))
         panel.orderFrontRegardless()
         self.panel = panel

@@ -29,6 +29,21 @@ struct MainPanelView: View {
                 .padding(.top, 10)
                 .allowsHitTesting(false)
         }
+        .overlay(alignment: .topTrailing) {
+            // 右上角 App 圖示與名稱（不擋拖動視窗）
+            HStack(spacing: 5) {
+                Image("AppLogo")
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 18, height: 18)
+                Text("Soon-Cut")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 5)
+            .padding(.trailing, 14)
+            .allowsHitTesting(false)
+        }
     }
 
     // MARK: 快捷列
