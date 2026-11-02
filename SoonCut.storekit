@@ -1,0 +1,31 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "6829818494",
+      "localizations" : [
+        {
+          "description" : "Export your videos without the watermark.",
+          "displayName" : "Remove Watermark",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "cc.aicolab.SoonCut.pro",
+      "referenceName" : "SoonCut Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6829815897",
+    "_developerTeamID" : "UAGPUYRAZ3",
+    "_lastSynchronizedDate" : 0
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

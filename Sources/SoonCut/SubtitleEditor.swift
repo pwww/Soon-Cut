@@ -182,6 +182,10 @@ struct SubtitleEditor: View {
                 .help(store.subtitles.isEmpty ? "用本機 Whisper 轉寫字幕" : "重新轉寫會覆蓋目前的字幕修改")
             }
             Spacer()
+            #if APPSTORE
+            // 預覽畫面此刻就有浮水印，是唯一「想移除它」的動機已經存在的時刻。
+            WatermarkNoticeButton()
+            #endif
             Button {
                 store.exportVideo()
             } label: {

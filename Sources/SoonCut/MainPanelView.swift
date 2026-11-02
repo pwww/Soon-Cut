@@ -416,7 +416,14 @@ struct ClipThumb: View {
 
 struct EditionBadge: View {
     @State private var showInfo = false
-    private let edition = Licensing.edition
+    #if APPSTORE
+    @EnvironmentObject private var license: LicenseStore
+    @State private var showPaywall = false
+    #endif
+
+    /// ⚠️ 不要用 `let`（原本是）。買斷成功後 `Licensing.edition` 會從
+    /// `.free` 變成 `.pro`，存成常數的話這顆標示會一直停在「免費版」。
+    private var edition: Edition { Licensing.edition }
 
     var body: some View {
         Button {
@@ -438,6 +445,16 @@ struct EditionBadge: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                #if APPSTORE
+                if edition == .free {
+                    Button("移除浮水印…") {
+                        showInfo = false
+                        showPaywall = true
+                    }
+                    .controlSize(.small)
+                    .padding(.top, 2)
+                }
+                #endif
                 if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
                     Text("版本 \(version)")
                         .font(.caption)
@@ -447,6 +464,9 @@ struct EditionBadge: View {
             .padding(14)
             .frame(width: 260)
         }
+        #if APPSTORE
+        .sheet(isPresented: $showPaywall) { PaywallSheet() }
+        #endif
     }
 
     private var color: Color {

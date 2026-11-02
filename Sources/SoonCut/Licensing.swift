@@ -1,5 +1,6 @@
 import Foundation
 #if APPSTORE
+import AppKit
 import StoreKit
 #endif
 
@@ -138,10 +139,17 @@ final class LicenseStore: ObservableObject {
         priceText = product.displayPrice
     }
 
+    func clearError() { purchaseError = nil }
+
     func purchase() async {
         purchaseError = nil
         isWorking = true
         defer { isWorking = false }
+        // ⚠️ 主視窗是 `.nonactivatingPanel` 的 NSPanel（見 FloatingPanel.swift）。
+        // StoreKit 的購買表單是系統掛在**作用中視窗**上的，App 沒被啟動時
+        // 表單可能完全不出現——而那是一個無聲失敗：使用者按了按鈕，什麼都沒發生。
+        NSApp.activate()
+        NSApp.keyWindow?.makeKeyAndOrderFront(nil)
         do {
             guard let product = try await Product.products(for: [Licensing.productID]).first else {
                 purchaseError = "暫時無法取得商品資訊，請確認網路後再試。"
@@ -181,6 +189,7 @@ final class LicenseStore: ObservableObject {
         }
     }
     #else
+    func clearError() {}
     func refresh() async {}
     func purchase() async {}
     func restore() async {}
