@@ -5,108 +5,156 @@
 <h1 align="center">Soon-Cut</h1>
 
 <p align="center">
-  A floating macOS tool for turning what you're watching into a subtitled short video — record a region, trim, caption, drag to upload.<br>
-  macOS 浮動小工具：邊看邊錄、剪頭尾、自動上繁中字幕，做完直接拖去上傳。
+  <b>English</b> ｜ <a href="README.zh-TW.md">繁體中文</a>
 </p>
+
+<p align="center">
+  Watch, clip, caption, share — a floating Mac tool that turns what's on your screen into a subtitled short video in minutes.
+</p>
+
+<p align="center">
+  <img src="docs/images/hero.png" width="820" alt="Soon-Cut floating panel next to a browser">
+</p>
+
+## Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [How to use](#how-to-use)
+- [FAQ](#faq)
+- [Responsible use](#responsible-use)
+- [License](#license)
+
+## Features
+
+- **Floating panel** that stays on top without stealing focus from your browser or video player
+- **Region capture** with system audio; one click to lock 9:16
+- **Clip editing**: trim with a filmstrip, drag to reorder, park clips in a staging area
+- **On-device captions** in Traditional Chinese with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift); edit line by line
+- **Multi-ratio export**: original, 9:16, 4:5, 1:1, 16:9 with blurred background, platform hints and length warnings
+- **Three quality levels**: 1080p, 720p, 540p with estimated file size
+- **Drag to upload**: drop the finished video straight into a web upload box
+- **Private by design**: everything runs on your Mac; no account, no cloud, no data collected
 
 ---
 
-## English
+## Installation
 
-Soon-Cut stays on top of your screen while you watch, review or demo something. Frame a region, record a few clips, trim them, add captions, and export a short video sized for Threads, Reels, Shorts or TikTok. Everything runs on your Mac — no account, no cloud, no data collected.
+### Option A: Mac App Store
 
-### Features
+Coming soon. The App Store version is free to download with a small watermark; a one-time purchase removes it.
 
-- **Always-on-top floating panel** that doesn't steal focus from your browser or video player
-- **Region capture** — drag to frame any part of the screen; one click to lock 9:16
-- **System audio recording** via ScreenCaptureKit
-- **Clip editing** — trim with a filmstrip like iPhone Photos, drag to reorder, park clips in a staging area
-- **On-device captions** — Traditional Chinese transcription with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift), edit line by line
-- **Multi-ratio export** — original / 9:16 / 4:5 / 1:1 / 16:9 with blurred background fill, platform hints and length warnings
-- **Drag to upload** — drag the exported video straight into a web upload box or Finder
+### Option B: Build from source (free, no watermark)
 
-### Requirements
+**Requirements**
 
 - macOS 15 or later, Apple Silicon
 - Xcode 16 or later
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
-- About 1.6 GB of disk space for the speech model (downloaded on first use)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+- About 1.6 GB of free space for the speech model
 
-### Build from source
+**1. Get the code and generate the Xcode project**
 
 ```bash
-git clone <this repo>
+brew install xcodegen
+git clone https://github.com/pwww/Soon-Cut.git
 cd Soon-Cut
-xcodegen                     # generates SoonCut.xcodeproj from project.yml
+xcodegen
 open SoonCut.xcodeproj
 ```
 
-1. In `project.yml`, set `DEVELOPMENT_TEAM` to your own Apple team ID (a stable signature keeps the Screen Recording permission from being asked on every build), then run `xcodegen` again.
-2. Choose **My Mac** as the destination and press ⌘R.
-3. On first recording, allow **Screen & System Audio Recording** for SoonCut in System Settings, then relaunch.
+**2. Set your own signing team**
 
-Builds from source have no watermark. The Mac App Store version is free to download with a small watermark, removed by a one-time purchase — buying it is a way to support the project.
+Open `project.yml`, change `DEVELOPMENT_TEAM` to your Apple team ID, then run `xcodegen` again. A stable signature means macOS remembers the screen recording permission between builds.
 
-### Responsible use
+**3. Build and run**
 
-Soon-Cut is a screen recorder for commentary, tutorials, demos and your own content. Only share recordings of other people's work when you have the right to do so.
+In Xcode, choose **My Mac** as the destination and press **⌘R**.
 
-### License
+**4. Allow screen recording**
 
-Soon-Cut is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE).
+The first time you record, macOS asks for permission. Open **System Settings › Privacy & Security › Screen & System Audio Recording**, turn on **SoonCut**, then quit and reopen the app.
 
-The **Soon-Cut name and icon are not covered by the license**. If you distribute a modified version, please give it a different name and icon.
+<p align="center">
+  <img src="docs/images/install-permission.png" width="640" alt="Screen & System Audio Recording permission">
+</p>
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+**5. Done**
+
+A short tutorial appears on first launch. You can open it again any time with the **?** button.
 
 ---
 
-## 繁體中文
+## How to use
 
-Soon-Cut 是一個常駐在螢幕最上層的浮動視窗。看影片、做評論或示範時，框選畫面錄幾段、剪掉頭尾、自動上繁中字幕，再輸出成適合 Threads、Reels、Shorts、TikTok 的短影音。全部在你的 Mac 上處理，不用帳號、不上雲端、不收集資料。
+### Step 1 — Frame a region
 
-### 功能
+Open the video or page you want to capture. Click **Range** (範圍) and drag over the area on screen. Turn on **9:16** first if you want a vertical frame. A faint dashed outline keeps showing where the region is.
 
-- **永遠在最上層的浮動視窗**，不會搶走瀏覽器或播放器的焦點
-- **框選錄影**：直接在畫面上拖曳框選，一鍵鎖定 9:16
-- **錄系統聲音**（ScreenCaptureKit）
-- **片段剪輯**：像 iPhone 相簿一樣拖膠卷條剪頭尾、拖曳排序、暫存區放這次不用的片段
-- **本機字幕**：用 [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) 轉寫繁體中文，可以逐句修改
-- **多比例輸出**：原始／9:16／4:5／1:1／16:9，自動補模糊背景，標示適合的平台與長度上限
-- **拖去上傳**：把輸出的影片直接拖進網頁上傳框或 Finder
+<p align="center"><img src="docs/images/step1-region.png" width="720" alt="Frame a region"></p>
 
-### 需求
+### Step 2 — Record
 
-- macOS 15 以上、Apple Silicon
-- Xcode 16 以上
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）
-- 語音模型約 1.6 GB（第一次產生字幕時下載）
+Click **Record** (錄影) or press **⇧⌘R**. The outline turns red while recording. Click again to stop. Record as many clips as you like; each one appears in the clip strip. The speaker button toggles system audio.
 
-### 從原始碼編譯
+<p align="center"><img src="docs/images/step2-record.png" width="720" alt="Record"></p>
 
-```bash
-git clone <這個 repo>
-cd Soon-Cut
-xcodegen                     # 從 project.yml 產生 SoonCut.xcodeproj
-open SoonCut.xcodeproj
-```
+### Step 3 — Trim and arrange
 
-1. 把 `project.yml` 裡的 `DEVELOPMENT_TEAM` 改成你自己的 Apple 開發者 Team ID，再跑一次 `xcodegen`。簽章固定，螢幕錄影權限才不會每次編譯都重問。
-2. 執行目的地選 **My Mac**，按 ⌘R。
-3. 第一次錄影時，到系統設定允許 SoonCut 使用「螢幕與系統錄音」，然後重新開啟 App。
+Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the start and end. Drag thumbnails left or right to reorder. Drag a clip down into the **staging area** to leave it out of this video without deleting it.
 
-自己編譯的版本沒有浮水印。Mac App Store 版免費下載，右下角有小浮水印，一次買斷即可移除；購買也是支持這個專案的方式。
+<p align="center"><img src="docs/images/step3-trim.png" width="720" alt="Trim and arrange"></p>
 
-### 使用提醒
+### Step 4 — Add captions
 
-Soon-Cut 是用來評論、教學、示範與剪輯自己內容的螢幕錄影工具。轉發他人的作品前，請先確認你有權利這麼做。
+Open the **Captions** (字幕) tab and click **Generate captions** (產生字幕). The first time, Soon-Cut downloads a 1.6 GB speech model; after that, captions take seconds. Click a timestamp to jump there, edit any line, or delete it.
 
-### 授權
+<p align="center"><img src="docs/images/step4-subtitles.png" width="720" alt="Add captions"></p>
 
-Soon-Cut 是自由軟體，採用 [GNU 通用公共授權條款 第 3 版或更新版本](LICENSE)（GPL-3.0-or-later）。
+### Step 5 — Choose ratio and quality, then export
 
-**「Soon-Cut」名稱與圖示不在授權範圍內。** 如果你發布修改後的版本，請使用不同的名稱與圖示。
+Pick a ratio. Soon-Cut shows which platforms it suits and warns you when the video is too long. Pick a quality and check the estimated file size. Click **Export** (輸出影片).
 
-歡迎貢獻，請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)。
+| Ratio | Good for |
+| --- | --- |
+| Original | Threads |
+| 9:16 | Threads, IG Reels, YouTube Shorts, TikTok |
+| 4:5 | Threads, IG posts |
+| 1:1 | Threads, IG posts, YouTube Shorts |
+| 16:9 | Threads, YouTube |
 
-開發測試清單見 [docs/TESTING.md](docs/TESTING.md)。
+<p align="center"><img src="docs/images/step5-export.png" width="720" alt="Export"></p>
+
+### Step 6 — Drag to upload
+
+Open the **Output** (輸出) tab. Drag the video card straight into the upload box on Threads or any website, or onto Finder. Mark it **Uploaded** afterwards, and archive old videos to keep the list tidy.
+
+<p align="center"><img src="docs/images/step6-upload.png" width="720" alt="Drag to upload"></p>
+
+---
+
+## FAQ
+
+**Where are my files?**
+Clips are in `~/Movies/Soon-Cut/Raw`, exported videos in `~/Movies/Soon-Cut/Exports`.
+
+**macOS keeps asking for screen recording permission.**
+Make sure `DEVELOPMENT_TEAM` in `project.yml` is set, then run `xcodegen` again. Without a stable signature, every build looks like a new app to macOS.
+
+**How accurate are the captions?**
+Traditional Chinese speech is usually above 95% accurate. Background music or several people talking at once lowers accuracy; you can fix any line by hand.
+
+**Which edition am I using?**
+The badge at the top right of the panel shows Open source, Free or Pro.
+
+## Responsible use
+
+Soon-Cut is a screen recorder for commentary, tutorials, demos and your own content. Only share recordings of other people's work when you have the right to do so.
+
+## License
+
+Soon-Cut is free software under the [GNU General Public License v3.0 or later](LICENSE).
+
+The **Soon-Cut name and icon are not covered by the license**. If you distribute a modified version, please use a different name and icon.
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
