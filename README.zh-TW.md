@@ -12,10 +12,6 @@
   邊看、邊錄、上字幕、拖去發 —— 把螢幕上的內容，幾分鐘做成有字幕的短影音的 Mac 浮動小工具。
 </p>
 
-<p align="center">
-  <img src="docs/images/hero.png" width="820" alt="Soon-Cut 浮動視窗與瀏覽器並排">
-</p>
-
 ## 目錄
 
 - [功能](#功能)
@@ -75,10 +71,6 @@ open SoonCut.xcodeproj
 
 第一次錄影時 macOS 會要求權限。打開「**系統設定 › 隱私權與安全性 › 螢幕與系統錄音**」，打開 **SoonCut**，然後結束並重新開啟 App。
 
-<p align="center">
-  <img src="docs/images/install-permission.png" width="640" alt="螢幕與系統錄音權限">
-</p>
-
 **5. 完成**
 
 第一次開啟會出現簡短的教學，之後隨時可以按浮動視窗的「**?**」再看一次。
@@ -91,25 +83,17 @@ open SoonCut.xcodeproj
 
 打開要錄的影片或網頁，按「**範圍**」，直接在畫面上拖曳框選。想錄直式，先打開「**9:16**」。框好後，範圍外圍會一直有一圈淡淡的虛線提醒你位置。
 
-<p align="center"><img src="docs/images/step1-region.png" width="720" alt="框選範圍"></p>
-
 ### 步驟 2：錄影
 
 按「**錄影**」或 **⇧⌘R** 開始，錄影時框線變紅色，再按一次停止。可以連續錄好幾段，每段都會出現在片段列。喇叭按鈕可以開關系統聲音。
-
-<p align="center"><img src="docs/images/step2-record.png" width="720" alt="錄影"></p>
 
 ### 步驟 3：剪輯與排序
 
 點片段就會在下方播放。拖曳膠卷條兩端的黃色把手剪掉頭尾。左右拖動縮圖可以排順序。把片段往下拖到「**暫存區**」，這次就不會放進輸出，但檔案還在。
 
-<p align="center"><img src="docs/images/step3-trim.png" width="720" alt="剪輯與排序"></p>
-
 ### 步驟 4：上字幕
 
 切到「**字幕**」分頁，選「**語音**」（影片說的語言，不確定就選自動偵測）和「**字幕**」語言，按「**產生字幕**」。兩者不同時會用 macOS 內建翻譯在本機翻譯，第一次翻某種語言時系統會請你下載語言包。第一次會下載約 1.6 GB 的語音模型，之後幾秒就能轉好。點時間可以跳到那一句，每句都可以直接修改或刪除。
-
-<p align="center"><img src="docs/images/step4-subtitles.png" width="720" alt="上字幕"></p>
 
 ### 步驟 5：選比例與畫質，輸出
 
@@ -123,13 +107,9 @@ open SoonCut.xcodeproj
 | 1:1 | Threads、IG 貼文、YouTube Shorts |
 | 16:9 | Threads、YouTube |
 
-<p align="center"><img src="docs/images/step5-export.png" width="720" alt="輸出"></p>
-
 ### 步驟 6：拖去上傳
 
 切到「**輸出**」分頁，把影片卡片直接拖進 Threads 或任何網站的上傳框，也可以拖到 Finder。發完可以標記「**已上傳**」，舊影片可以封存。
-
-<p align="center"><img src="docs/images/step6-upload.png" width="720" alt="拖去上傳"></p>
 
 ---
 

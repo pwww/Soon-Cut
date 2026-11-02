@@ -12,10 +12,6 @@
   Watch, clip, caption, share — a floating Mac tool that turns what's on your screen into a subtitled short video in minutes.
 </p>
 
-<p align="center">
-  <img src="docs/images/hero.png" width="820" alt="Soon-Cut floating panel next to a browser">
-</p>
-
 ## Contents
 
 - [Features](#features)
@@ -75,10 +71,6 @@ In Xcode, choose **My Mac** as the destination and press **⌘R**.
 
 The first time you record, macOS asks for permission. Open **System Settings › Privacy & Security › Screen & System Audio Recording**, turn on **SoonCut**, then quit and reopen the app.
 
-<p align="center">
-  <img src="docs/images/install-permission.png" width="640" alt="Screen & System Audio Recording permission">
-</p>
-
 **5. Done**
 
 A short tutorial appears on first launch. You can open it again any time with the **?** button.
@@ -91,25 +83,17 @@ A short tutorial appears on first launch. You can open it again any time with th
 
 Open the video or page you want to capture. Click **Range** (範圍) and drag over the area on screen. Turn on **9:16** first if you want a vertical frame. A faint dashed outline keeps showing where the region is.
 
-<p align="center"><img src="docs/images/step1-region.png" width="720" alt="Frame a region"></p>
-
 ### Step 2 — Record
 
 Click **Record** (錄影) or press **⇧⌘R**. The outline turns red while recording. Click again to stop. Record as many clips as you like; each one appears in the clip strip. The speaker button toggles system audio.
-
-<p align="center"><img src="docs/images/step2-record.png" width="720" alt="Record"></p>
 
 ### Step 3 — Trim and arrange
 
 Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the start and end. Drag thumbnails left or right to reorder. Drag a clip down into the **staging area** to leave it out of this video without deleting it.
 
-<p align="center"><img src="docs/images/step3-trim.png" width="720" alt="Trim and arrange"></p>
-
 ### Step 4 — Add captions
 
 Open the **Captions** (字幕) tab. Choose the spoken language (or Auto detect) and the subtitle language, then click **Generate captions** (產生字幕). If the two differ, Soon-Cut translates on your Mac with Apple Translation; macOS may ask you to download a language pack the first time. The first time, Soon-Cut downloads a 1.6 GB speech model; after that, captions take seconds. Click a timestamp to jump there, edit any line, or delete it.
-
-<p align="center"><img src="docs/images/step4-subtitles.png" width="720" alt="Add captions"></p>
 
 ### Step 5 — Choose ratio and quality, then export
 
@@ -123,13 +107,9 @@ Pick a ratio. Soon-Cut shows which platforms it suits and warns you when the vid
 | 1:1 | Threads, IG posts, YouTube Shorts |
 | 16:9 | Threads, YouTube |
 
-<p align="center"><img src="docs/images/step5-export.png" width="720" alt="Export"></p>
-
 ### Step 6 — Drag to upload
 
 Open the **Output** (輸出) tab. Drag the video card straight into the upload box on Threads or any website, or onto Finder. Mark it **Uploaded** afterwards, and archive old videos to keep the list tidy.
-
-<p align="center"><img src="docs/images/step6-upload.png" width="720" alt="Drag to upload"></p>
 
 ---
 
