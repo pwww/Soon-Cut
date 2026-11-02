@@ -443,6 +443,7 @@ final class AppStore: ObservableObject {
                         firstTime ? "模型準備好了，正在轉寫，通常比影片長度快很多。" : nil)
                 let result = try await Composer.build(clips: currentClips)
                 let transcript = try await transcriber.transcribe(asset: result.composition,
+                                                                  pieces: result.pieces,
                                                                   language: speechLanguage.whisperCode)
                 sourceSubtitles = transcript.segments
                 spokenLanguage = transcript.language

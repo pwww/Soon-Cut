@@ -13,6 +13,8 @@ enum Composer {
         let videoComposition: AVMutableVideoComposition
         let duration: Double
         let renderSize: CGSize
+        /// 時間軸上每一小段（每個黃色區段）的位置，轉寫時逐段處理
+        let pieces: [ClipRange]
     }
 
     static func build(clips: [Clip]) async throws -> Result {
@@ -86,6 +88,9 @@ enum Composer {
         return Result(composition: composition,
                       videoComposition: videoComposition,
                       duration: CMTimeGetSeconds(cursor),
-                      renderSize: renderSize)
+                      renderSize: renderSize,
+                      pieces: segments.map {
+                          ClipRange(start: CMTimeGetSeconds($0.range.start), end: CMTimeGetSeconds($0.range.end))
+                      })
     }
 }

@@ -88,8 +88,47 @@ actor Transcriber {
     /// 轉寫整條拼接好的時間軸（AVComposition）或單一影片
     /// - Parameter language: Whisper 語言代碼；nil = 自動偵測
     /// - Returns: 字幕句子，以及實際的語音語言代碼。中文一律先轉成繁體。
-    func transcribe(asset: AVAsset, language: String?) async throws -> (segments: [SubtitleSegment], language: String) {
-        let audioURL = try await Self.extractAudio(from: asset)
+    /// 逐段轉寫整條時間軸：每一小段（每個黃色區段）分開轉，再把時間對回時間軸。
+    /// 某一段轉到一半就停（Whisper 偶爾會這樣）時，從停下的地方接著轉。
+    func transcribe(asset: AVAsset, pieces: [ClipRange], language: String?) async throws -> (segments: [SubtitleSegment], language: String) {
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        guard !audioTracks.isEmpty else { throw TranscribeError.noAudio }
+        var spoken = language
+        var all: [SubtitleSegment] = []
+
+        for piece in pieces where piece.length >= 0.5 {
+            var offset = piece.start
+            var attempts = 0
+            while piece.end - offset > 1.5 && attempts < 12 {
+                attempts += 1
+                let range = CMTimeRange(start: CMTime(seconds: offset, preferredTimescale: 600),
+                                        end: CMTime(seconds: piece.end, preferredTimescale: 600))
+                let result = try await transcribeRange(asset: asset, range: range, language: spoken)
+                if spoken == nil { spoken = result.language }   // 自動偵測：以第一段為準，後面固定
+                let segs = result.segments.compactMap { seg -> SubtitleSegment? in
+                    let start = offset + seg.start
+                    let end = min(piece.end, offset + seg.end)
+                    guard end > start else { return nil }
+                    return SubtitleSegment(start: start, end: end, text: seg.text)
+                }
+                guard let lastEnd = segs.last?.end else { break }   // 後面沒有說話
+                all += segs
+                if piece.end - lastEnd <= 2 { break }               // 這一段轉完了
+                offset = max(lastEnd, offset + 1)                   // 停在中間：從停下的地方接著轉
+            }
+        }
+        let lang = spoken ?? "zh"
+        let cleaned = all.compactMap { seg -> SubtitleSegment? in
+            let text = Self.clean(seg.text, chinese: lang == "zh")
+            guard !text.isEmpty else { return nil }
+            return SubtitleSegment(start: seg.start, end: seg.end, text: text)
+        }
+        return (cleaned, lang)
+    }
+
+    /// 轉寫時間軸上的一小段；回傳的時間從這一小段的開頭算起
+    private func transcribeRange(asset: AVAsset, range: CMTimeRange, language: String?) async throws -> (segments: [SubtitleSegment], language: String) {
+        let audioURL = try await Self.extractAudio(from: asset, timeRange: range)
         defer { try? FileManager.default.removeItem(at: audioURL) }
 
         let whisper = try await loadModel()
@@ -105,10 +144,8 @@ actor Transcriber {
 
         let results = try await whisper.transcribe(audioPath: audioURL.path, decodeOptions: options)
         let spoken = language ?? results.first?.language ?? "zh"
-        let segments: [SubtitleSegment] = results.flatMap { $0.segments }.compactMap { seg in
-            let text = Self.clean(seg.text, chinese: spoken == "zh")
-            guard !text.isEmpty else { return nil }
-            return SubtitleSegment(start: Double(seg.start), end: Double(seg.end), text: text)
+        let segments = results.flatMap { $0.segments }.map {
+            SubtitleSegment(start: Double($0.start), end: Double($0.end), text: $0.text)
         }
         return (segments, spoken)
     }
@@ -121,12 +158,13 @@ actor Transcriber {
     }
 
     /// 從 MP4 抽出音軌成暫存 m4a
-    static func extractAudio(from asset: AVAsset) async throws -> URL {
+    static func extractAudio(from asset: AVAsset, timeRange: CMTimeRange? = nil) async throws -> URL {
         let audioTracks = try await asset.loadTracks(withMediaType: .audio)
         guard !audioTracks.isEmpty else { throw TranscribeError.noAudio }
         guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
             throw TranscribeError.noAudio
         }
+        if let timeRange { session.timeRange = timeRange }
         let out = FileManager.default.temporaryDirectory
             .appendingPathComponent("sooncut-\(UUID().uuidString).m4a")
         try await session.export(to: out, as: .m4a)
