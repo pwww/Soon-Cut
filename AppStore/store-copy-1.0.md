@@ -11,7 +11,7 @@
 
 | 欄位 | 語言 | 字元數 | 上限 |
 |---|---|---|---|
-| description | en-US | **3409** | 4000 |
+| description | en-US | **3366** | 4000 |
 | keywords | en-US | **100** | 100 |
 | promotionalText | en-US | **159** | 170 |
 | whatsNew | en-US | **790** | 4000 |
@@ -26,7 +26,7 @@
 
 ## Description（en-US）
 
-**description · en-US — 3409 / 4000 字元**
+**description · en-US — 3366 / 4000 字元**
 
 ```
 Record part of your screen, talk over it, and let your Mac write the captions. Trim it, pick a shape, and the clip is ready to post.
@@ -68,7 +68,6 @@ Every feature above is free to use. Exported videos carry a small "SoonCut" mark
 WORTH KNOWING BEFORE YOU DOWNLOAD
 - Requires macOS 15 or later on an Apple Silicon Mac.
 - The first time you generate captions, Soon-Cut downloads a speech model of about 1.6 GB and then takes a minute or two to prepare it for your Mac. That happens once; after that, captions take seconds. Never use captions and nothing is downloaded.
-- The interface is in Traditional Chinese.
 - Soon-Cut is open source, released under the GPL-3.0.
 
 Record what is yours to record. Soon-Cut is made for your own screen, your own work, and commentary you have the right to publish.
@@ -203,5 +202,9 @@ Soon-Cut 的第一個版本。
 
 1. **沒有任何一句把 App 寫成「把網路上的影片存下來／下載／剪下來分享」。** 定位全部落在教學示範、操作錄影、產品 demo、邊看邊講評、會議重點，並在兩種語言的最後一段寫明「錄你有權利錄的東西」。
 2. **沒有埋不存在的功能。** 全文沒有出現 webcam／攝影機／GIF／去背／美顏／雲端／團隊協作／直播／自動剪輯／AI 摘要／SRT 匯出／60fps／字幕樣式自訂。
-3. **限制寫在描述裡，沒有藏：** macOS 15 以上、Apple Silicon、第一次產生字幕要下載約 1.6 GB 語音模型（外加一兩分鐘的 Core ML 準備時間）。英文版另外寫明介面語言。
+3. **限制寫在描述裡，沒有藏：** macOS 15 以上、Apple Silicon、第一次產生字幕要下載約 1.6 GB 語音模型（外加一兩分鐘的 Core ML 準備時間）。
+
+> ⚠️ 草稿原本在英文描述裡寫了一行 `The interface is in Traditional Chinese.`，
+> 那是寫稿當下的事實。**介面已於 commit e70ae01 補上完整英文**
+> （String Catalog，en.lproj 與 zh-Hant.lproj 都在 bundle 裡），那一行已移除。
 

@@ -27,9 +27,9 @@
 
 - **Floating panel** that stays on top without stealing focus from your browser or video player
 - **Region capture** with system audio and/or microphone (each toggled separately); one click to lock 9:16
-- **Import videos** you already have — click Import or drag files in
+- **Import videos** you already have (MP4, MOV, M4V) — click Import or drag files in
 - **Clip editing**: trim with a filmstrip, split a clip at the playhead (⌘B), drag to reorder, park clips in a staging area
-- **On-device captions** with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) in 10+ spoken languages, translated on-device with Apple Translation when you want another subtitle language; edit line by line
+- **On-device captions** with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) in ten spoken languages plus auto-detect, translated on-device with Apple Translation when you want another subtitle language; edit line by line
 - **Multi-ratio export**: original, 9:16, 4:5, 1:1, 16:9 with blurred background, platform hints and length warnings
 - **Three quality levels**: 1080p, 720p, 540p with estimated file size
 - **Drag to upload**: drop the finished video straight into a web upload box
