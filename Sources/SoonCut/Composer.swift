@@ -17,14 +17,14 @@ enum Composer {
 
     static func build(clips: [Clip]) async throws -> Result {
         let composition = AVMutableComposition()
-        guard let videoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid),
-              let audioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+        guard let videoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else {
             throw ComposerError.empty
         }
+        // 每個片段可能有多條音軌（系統聲音＋麥克風），依序放進對應的音軌，播放與輸出時會混在一起
+        var audioTracks: [AVMutableCompositionTrack] = []
 
         var cursor = CMTime.zero
         var segments: [(range: CMTimeRange, size: CGSize, transform: CGAffineTransform)] = []
-        var hasAudio = false
 
         for clip in clips where clip.trimmedDuration >= ClipStorage.minClipLength {
             let asset = AVURLAsset(url: clip.url)
@@ -36,9 +36,14 @@ enum Composer {
             let sourceRange = CMTimeRange(start: start, duration: duration)
 
             try videoTrack.insertTimeRange(sourceRange, of: srcVideo, at: cursor)
-            if let srcAudio = try await asset.loadTracks(withMediaType: .audio).first {
-                try audioTrack.insertTimeRange(sourceRange, of: srcAudio, at: cursor)
-                hasAudio = true
+            let srcAudios = try await asset.loadTracks(withMediaType: .audio)
+            for (k, srcAudio) in srcAudios.enumerated() {
+                if k >= audioTracks.count,
+                   let added = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                    audioTracks.append(added)
+                }
+                guard k < audioTracks.count else { break }
+                try audioTracks[k].insertTimeRange(sourceRange, of: srcAudio, at: cursor)
             }
 
             let natural = try await srcVideo.load(.naturalSize)
@@ -51,7 +56,6 @@ enum Composer {
         }
 
         guard let first = segments.first else { throw ComposerError.empty }
-        if !hasAudio { composition.removeTrack(audioTrack) }
 
         let renderSize = CGSize(width: (first.size.width / 2).rounded() * 2,
                                 height: (first.size.height / 2).rounded() * 2)

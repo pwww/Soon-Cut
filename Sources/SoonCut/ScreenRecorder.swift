@@ -24,7 +24,12 @@ final class ScreenRecorder: NSObject, SCStreamDelegate, SCStreamOutput, SCRecord
 
     /// - Parameters:
     ///   - sourceRect: 相對於螢幕、左上原點、單位 point
-    func start(displayID: CGDirectDisplayID, sourceRect: CGRect, captureAudio: Bool, outputURL: URL) async throws {
+    func start(displayID: CGDirectDisplayID,
+               sourceRect: CGRect,
+               captureAudio: Bool,
+               captureMicrophone: Bool,
+               microphoneID: String?,
+               outputURL: URL) async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first(where: { $0.displayID == displayID }) else {
             throw RecorderError.displayNotFound
@@ -54,11 +59,19 @@ final class ScreenRecorder: NSObject, SCStreamDelegate, SCStreamOutput, SCRecord
         config.excludesCurrentProcessAudio = true
         config.sampleRate = 48_000
         config.channelCount = 2
+        // 麥克風（macOS 15）：跟系統聲音各自獨立開關；nil = 系統預設麥克風
+        config.captureMicrophone = captureMicrophone
+        if captureMicrophone, let microphoneID {
+            config.microphoneCaptureDeviceID = microphoneID
+        }
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
         if captureAudio {
             try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
+        }
+        if captureMicrophone {
+            try stream.addStreamOutput(self, type: .microphone, sampleHandlerQueue: sampleQueue)
         }
 
         let recConfig = SCRecordingOutputConfiguration()

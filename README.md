@@ -26,8 +26,9 @@
 ## Features
 
 - **Floating panel** that stays on top without stealing focus from your browser or video player
-- **Region capture** with system audio; one click to lock 9:16
-- **Clip editing**: trim with a filmstrip, drag to reorder, park clips in a staging area
+- **Region capture** with system audio and/or microphone (each toggled separately); one click to lock 9:16
+- **Import videos** you already have — click Import or drag files in
+- **Clip editing**: trim with a filmstrip, split a clip at the playhead (⌘B), drag to reorder, park clips in a staging area
 - **On-device captions** with [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) in 10+ spoken languages, translated on-device with Apple Translation when you want another subtitle language; edit line by line
 - **Multi-ratio export**: original, 9:16, 4:5, 1:1, 16:9 with blurred background, platform hints and length warnings
 - **Three quality levels**: 1080p, 720p, 540p with estimated file size
@@ -87,11 +88,11 @@ Open the video or page you want to capture. Click **Range** (範圍) and drag ov
 
 ### Step 2 — Record
 
-Click **Record** (錄影) or press **⇧⌘R**. The outline turns red while recording. Click again to stop. Record as many clips as you like; each one appears in the clip strip. The speaker button toggles system audio.
+Click **Record** (錄影) or press **⇧⌘R**. The outline turns red while recording. Click again to stop. Record as many clips as you like; each one appears in the clip strip. The speaker and microphone buttons work independently — record computer audio, your voice, both, or neither. Right-click the microphone button to choose a mic. You can also import existing videos with the Import button or by dragging files into the clip strip.
 
 ### Step 3 — Trim and arrange
 
-Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the start and end. Drag thumbnails left or right to reorder. Drag a clip down into the **staging area** to leave it out of this video without deleting it.
+Click a clip to preview it. Drag the yellow handles on the filmstrip to cut the start and end. To cut out a middle part, move the white playhead to a spot and click **Split here** (在這裡剪開, ⌘B); each part gets its own handles. Drag thumbnails left or right to reorder. Drag a clip down into the **staging area** to leave it out of this video without deleting it.
 
 ### Step 4 — Add captions
 

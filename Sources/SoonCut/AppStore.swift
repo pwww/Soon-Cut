@@ -37,6 +37,14 @@ final class AppStore: ObservableObject {
     @Published var captureSystemAudio: Bool = (UserDefaults.standard.object(forKey: "captureSystemAudio") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(captureSystemAudio, forKey: "captureSystemAudio") }
     }
+    /// 同時錄麥克風（跟系統聲音各自獨立）
+    @Published var captureMicrophone: Bool = UserDefaults.standard.bool(forKey: "captureMicrophone") {
+        didSet { UserDefaults.standard.set(captureMicrophone, forKey: "captureMicrophone") }
+    }
+    /// 選用的麥克風；nil = 系統預設
+    @Published var microphoneID: String? = UserDefaults.standard.string(forKey: "microphoneID") {
+        didSet { UserDefaults.standard.set(microphoneID, forKey: "microphoneID") }
+    }
     @Published private(set) var isRecording = false {
         didSet { refreshFrame() }
     }
@@ -47,7 +55,7 @@ final class AppStore: ObservableObject {
     @Published var clips: [Clip] = [] {
         didSet { pruneUnrelatedSubtitles() }
     }
-    @Published var selectedClipID: URL?
+    @Published var selectedClipID: UUID?
     @Published var previewMode: PreviewMode = .clip
 
     // MARK: 字幕
@@ -166,9 +174,19 @@ final class AppStore: ObservableObject {
         defer { isBusy = false }
         let url = ClipStorage.newClipURL()
         do {
+            if captureMicrophone {
+                let granted = await AVCaptureDevice.requestAccess(for: .audio)
+                guard granted else {
+                    errorMessage = "沒有麥克風權限：請到「系統設定 › 隱私權與安全性 › 麥克風」允許 SoonCut，或先關掉麥克風。"
+                    return
+                }
+            }
+            let micID = microphoneID.flatMap { id in Self.microphones().contains { $0.id == id } ? id : nil }
             try await recorder.start(displayID: region.displayID,
                                      sourceRect: source,
                                      captureAudio: captureSystemAudio,
+                                     captureMicrophone: captureMicrophone,
+                                     microphoneID: micID,
                                      outputURL: url)
             currentURL = url
             isRecording = true
@@ -216,7 +234,11 @@ final class AppStore: ObservableObject {
 
     func trash(_ clip: Clip) {
         do {
-            try FileManager.default.trashItem(at: clip.url, resultingItemURL: nil)
+            // 同一個檔案剪開的其他片段還在用時，只移除這一段，不丟檔案
+            let shared = clips.contains { $0.id != clip.id && $0.url == clip.url }
+            if !shared {
+                try FileManager.default.trashItem(at: clip.url, resultingItemURL: nil)
+            }
             clips.removeAll { $0.id == clip.id }
             if selectedClipID == clip.id { selectedClipID = clips.last?.id }
             ClipStorage.saveLibrary(clips)
@@ -229,15 +251,109 @@ final class AppStore: ObservableObject {
         NSWorkspace.shared.open(ClipStorage.rawDir)
     }
 
-    func setTrim(clipID: URL, start: Double, end: Double) {
+    func setTrim(clipID: UUID, start: Double, end: Double) {
         guard let i = clips.firstIndex(where: { $0.id == clipID }) else { return }
+        let startChanged = abs(clips[i].trimStart - start) > 0.05
         clips[i].trimStart = start
         clips[i].trimEnd = end
         ClipStorage.saveLibrary(clips)
+        if startChanged { refreshThumbnail(clipID) }
+    }
+
+    private func refreshThumbnail(_ id: UUID) {
+        guard let clip = clips.first(where: { $0.id == id }) else { return }
+        Task {
+            let thumb = await ClipStorage.thumbnail(for: clip)
+            if let i = clips.firstIndex(where: { $0.id == id }) { clips[i].thumbnail = thumb }
+        }
+    }
+
+    /// 能不能在 time 把這一段剪開（兩邊都至少要留最短長度）
+    func canSplit(_ id: UUID, at time: Double) -> Bool {
+        guard let c = clips.first(where: { $0.id == id }) else { return false }
+        return time > c.trimStart + ClipStorage.minClipLength && time < c.trimEnd - ClipStorage.minClipLength
+    }
+
+    /// 在 time 把一段剪成兩段；後半段緊接在後面並被選取，方便繼續剪
+    func splitClip(_ id: UUID, at time: Double) {
+        guard canSplit(id, at: time), let i = clips.firstIndex(where: { $0.id == id }) else { return }
+        var first = clips[i]
+        var second = clips[i]
+        second.id = UUID()
+        first.trimEnd = time
+        second.trimStart = time
+        clips[i] = first
+        clips.insert(second, at: i + 1)
+        selectedClipID = second.id
+        ClipStorage.saveLibrary(clips)
+        refreshThumbnail(second.id)
+    }
+
+    // MARK: - 匯入影片
+
+    func importVideos() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.movie]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.prompt = "匯入"
+        panel.message = "選擇要匯入的影片，會複製一份到 Soon-Cut 的片段資料夾，原檔不動"
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 2)
+        NSApp.activate()
+        guard panel.runModal() == .OK else { return }
+        importFiles(panel.urls)
+    }
+
+    /// 複製影片到片段資料夾並加到「剪輯片段」最後面
+    func importFiles(_ urls: [URL]) {
+        let videos = urls.filter { ClipStorage.videoExtensions.contains($0.pathExtension.lowercased()) }
+        guard !videos.isEmpty else {
+            errorMessage = "只能匯入 MP4、MOV、M4V 影片。"
+            return
+        }
+        Task {
+            var lastID: UUID?
+            var failed: [String] = []
+            for source in videos {
+                let target = ClipStorage.importedClipURL(for: source)
+                let copied = await Task.detached { () -> Bool in
+                    let scoped = source.startAccessingSecurityScopedResource()
+                    defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+                    return (try? FileManager.default.copyItem(at: source, to: target)) != nil
+                }.value
+                guard copied else { failed.append(source.lastPathComponent); continue }
+                let clip = await ClipStorage.makeClip(url: target)
+                guard clip.duration > 0 else { failed.append(source.lastPathComponent); continue }
+                let insertAt = clips.firstIndex(where: { $0.isStaged }) ?? clips.count
+                clips.insert(clip, at: insertAt)
+                lastID = clip.id
+            }
+            if let lastID {
+                selectedClipID = lastID
+                previewMode = .clip
+                ClipStorage.saveLibrary(clips)
+            }
+            errorMessage = failed.isEmpty ? nil : "無法匯入：" + failed.joined(separator: "、")
+        }
+    }
+
+    // MARK: - 麥克風
+
+    struct Microphone: Identifiable, Hashable {
+        let id: String
+        let name: String
+    }
+
+    static func microphones() -> [Microphone] {
+        AVCaptureDevice.DiscoverySession(deviceTypes: [.microphone, .external],
+                                         mediaType: .audio,
+                                         position: .unspecified)
+            .devices
+            .map { Microphone(id: $0.uniqueID, name: $0.localizedName) }
     }
 
     /// 在同一區（使用中或暫存）裡把片段移到指定位置
-    func moveClip(_ id: URL, toIndex target: Int) {
+    func moveClip(_ id: UUID, toIndex target: Int) {
         guard let clip = clips.first(where: { $0.id == id }) else { return }
         let staged = clip.isStaged
         var group = clips.filter { $0.isStaged == staged }
@@ -256,7 +372,7 @@ final class AppStore: ObservableObject {
     }
 
     /// 移進／移出暫存區。移回使用中時放在最後面
-    func setStaged(_ id: URL, _ staged: Bool) {
+    func setStaged(_ id: UUID, _ staged: Bool) {
         guard let i = clips.firstIndex(where: { $0.id == id }), clips[i].isStaged != staged else { return }
         var clip = clips.remove(at: i)
         clip.isStaged = staged

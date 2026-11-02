@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MainPanelView: View {
     @EnvironmentObject var store: AppStore
@@ -84,7 +85,15 @@ struct MainPanelView: View {
             }
             .toggleStyle(.button)
             .disabled(store.isRecording)
-            .help("錄系統聲音")
+            .help("錄電腦播放的聲音")
+
+            Toggle(isOn: $store.captureMicrophone) {
+                Image(systemName: store.captureMicrophone ? "mic.fill" : "mic.slash")
+            }
+            .toggleStyle(.button)
+            .disabled(store.isRecording)
+            .help("同時錄麥克風（右鍵選擇麥克風）")
+            .contextMenu { microphoneMenu }
 
             Button {
                 store.showOnboarding?()
@@ -128,6 +137,13 @@ struct MainPanelView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button {
+                    store.importVideos()
+                } label: {
+                    Image(systemName: "square.and.arrow.down")
+                }
+                .buttonStyle(.borderless)
+                .help("匯入影片（也可以直接把影片拖進這裡）")
+                Button {
                     store.openRawFolder()
                 } label: {
                     Image(systemName: "folder")
@@ -137,7 +153,7 @@ struct MainPanelView: View {
             }
 
             if active.isEmpty {
-                emptyRow(staged.isEmpty ? "錄完的片段會出現在這裡" : "把暫存區的片段往上拖回來",
+                emptyRow(staged.isEmpty ? "錄完或匯入的片段會出現在這裡（也可以把影片拖進來）" : "把暫存區的片段往上拖回來",
                          height: ClipRow.mainSize.height)
             } else {
                 ClipRow(clips: active, staged: false)
@@ -157,6 +173,31 @@ struct MainPanelView: View {
                 emptyRow("沒有暫存的片段", height: ClipRow.stagedSize.height)
             } else {
                 ClipRow(clips: staged, staged: true)
+            }
+        }
+        // 從 Finder 拖影片進來＝匯入
+        .dropDestination(for: URL.self) { urls, _ in
+            let videos = urls.filter { ClipStorage.videoExtensions.contains($0.pathExtension.lowercased()) }
+            guard !videos.isEmpty else { return false }
+            store.importFiles(videos)
+            return true
+        }
+    }
+
+    @ViewBuilder
+    private var microphoneMenu: some View {
+        Button {
+            store.microphoneID = nil
+        } label: {
+            if store.microphoneID == nil { Label("系統預設麥克風", systemImage: "checkmark") } else { Text("系統預設麥克風") }
+        }
+        Divider()
+        ForEach(AppStore.microphones()) { mic in
+            Button {
+                store.microphoneID = mic.id
+                store.captureMicrophone = true
+            } label: {
+                if store.microphoneID == mic.id { Label(mic.name, systemImage: "checkmark") } else { Text(mic.name) }
             }
         }
     }
@@ -225,7 +266,7 @@ struct ClipRow: View {
     let clips: [Clip]
     let staged: Bool
 
-    @State private var draggingID: URL?
+    @State private var draggingID: UUID?
     @State private var dragOffset: CGSize = .zero
     @State private var consumedX: CGFloat = 0   // 已經換過位置的水平距離
 

@@ -11,6 +11,8 @@ struct ClipEditor: View {
     @State private var player = AVPlayer()
     @State private var draftStart: Double = 0
     @State private var draftEnd: Double = 0
+    @State private var currentTime: Double = 0
+    @State private var timeObserver: Any?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -24,8 +26,10 @@ struct ClipEditor: View {
                 duration: clip.duration,
                 start: $draftStart,
                 end: $draftEnd,
+                playhead: currentTime,
                 onScrub: { t in
                     player.pause()
+                    currentTime = t
                     player.seek(to: cmTime(t), toleranceBefore: .zero, toleranceAfter: .zero)
                 },
                 onCommit: {
@@ -41,6 +45,15 @@ struct ClipEditor: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                 Spacer()
+                Button {
+                    store.splitClip(clip.id, at: currentTime)
+                } label: {
+                    Label("在這裡剪開", systemImage: "scissors")
+                }
+                .controlSize(.small)
+                .disabled(!store.canSplit(clip.id, at: currentTime))
+                .keyboardShortcut("b", modifiers: .command)
+                .help("在白色播放線的位置把這段剪成兩段（⌘B），各自再拉長度")
                 if draftStart > 0.01 || draftEnd < clip.duration - 0.01 {
                     Button("還原") {
                         draftStart = 0
@@ -53,12 +66,18 @@ struct ClipEditor: View {
                 }
             }
         }
-        .onAppear { reload() }
-        .onChange(of: clip.url) { reload() }
+        .onAppear {
+            reload()
+            addObserver()
+        }
+        .onChange(of: clip.id) { reload() }
         .onChange(of: isRecording) {
             if isRecording { player.pause() }
         }
-        .onDisappear { player.pause() }
+        .onDisappear {
+            player.pause()
+            removeObserver()
+        }
         .onReceive(NotificationCenter.default.publisher(for: AVPlayerItem.didPlayToEndTimeNotification)) { note in
             // 播到剪輯終點後回到起點，下次按播放從頭開始
             if let item = note.object as? AVPlayerItem, item === player.currentItem {
@@ -74,9 +93,22 @@ struct ClipEditor: View {
         applyTrimToPlayer(seekToStart: true)
     }
 
+    private func addObserver() {
+        guard timeObserver == nil else { return }
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 20), queue: .main) { t in
+            currentTime = CMTimeGetSeconds(t)
+        }
+    }
+
+    private func removeObserver() {
+        if let timeObserver { player.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+    }
+
     private func applyTrimToPlayer(seekToStart: Bool) {
         player.currentItem?.forwardPlaybackEndTime = cmTime(draftEnd)
         if seekToStart {
+            currentTime = draftStart
             player.seek(to: cmTime(draftStart), toleranceBefore: .zero, toleranceAfter: .zero)
         }
     }
@@ -89,6 +121,7 @@ struct FilmstripTrimmer: View {
     let duration: Double
     @Binding var start: Double
     @Binding var end: Double
+    var playhead: Double? = nil
     var onScrub: (Double) -> Void
     var onCommit: () -> Void
 
@@ -142,6 +175,16 @@ struct FilmstripTrimmer: View {
                     .frame(width: max(handleWidth * 2, xe - xs), height: height)
                     .offset(x: xs)
                     .allowsHitTesting(false)
+
+                // 播放位置（剪開的位置）
+                if let p = playhead, p >= 0, p <= duration {
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(width: 2, height: height + 8)
+                        .shadow(color: .black.opacity(0.6), radius: 1.5)
+                        .offset(x: x(for: p, width: width) - 1, y: -4)
+                        .allowsHitTesting(false)
+                }
 
                 // 左把手
                 handle(systemImage: "chevron.compact.left")
