@@ -1,0 +1,84 @@
+import AVFoundation
+import CoreGraphics
+
+enum ComposerError: LocalizedError {
+    case empty
+    var errorDescription: String? { "沒有可以拼接的片段。" }
+}
+
+/// 把多個片段（依剪輯點）接成一條時間軸；尺寸不同的片段等比縮放置中到第一個片段的畫布
+enum Composer {
+    struct Result {
+        let composition: AVMutableComposition
+        let videoComposition: AVMutableVideoComposition
+        let duration: Double
+        let renderSize: CGSize
+    }
+
+    static func build(clips: [Clip]) async throws -> Result {
+        let composition = AVMutableComposition()
+        guard let videoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid),
+              let audioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            throw ComposerError.empty
+        }
+
+        var cursor = CMTime.zero
+        var segments: [(range: CMTimeRange, size: CGSize, transform: CGAffineTransform)] = []
+        var hasAudio = false
+
+        for clip in clips where clip.trimmedDuration >= ClipStorage.minClipLength {
+            let asset = AVURLAsset(url: clip.url)
+            guard let srcVideo = try await asset.loadTracks(withMediaType: .video).first else { continue }
+            let assetDuration = try await asset.load(.duration)
+            let start = CMTime(seconds: clip.trimStart, preferredTimescale: 600)
+            var duration = CMTime(seconds: clip.trimmedDuration, preferredTimescale: 600)
+            if CMTimeCompare(start + duration, assetDuration) > 0 { duration = assetDuration - start }
+            let sourceRange = CMTimeRange(start: start, duration: duration)
+
+            try videoTrack.insertTimeRange(sourceRange, of: srcVideo, at: cursor)
+            if let srcAudio = try await asset.loadTracks(withMediaType: .audio).first {
+                try audioTrack.insertTimeRange(sourceRange, of: srcAudio, at: cursor)
+                hasAudio = true
+            }
+
+            let natural = try await srcVideo.load(.naturalSize)
+            let preferred = try await srcVideo.load(.preferredTransform)
+            let rect = CGRect(origin: .zero, size: natural).applying(preferred)
+            segments.append((CMTimeRange(start: cursor, duration: duration),
+                             CGSize(width: abs(rect.width), height: abs(rect.height)),
+                             preferred))
+            cursor = cursor + duration
+        }
+
+        guard let first = segments.first else { throw ComposerError.empty }
+        if !hasAudio { composition.removeTrack(audioTrack) }
+
+        let renderSize = CGSize(width: (first.size.width / 2).rounded() * 2,
+                                height: (first.size.height / 2).rounded() * 2)
+        var instructions: [AVMutableVideoCompositionInstruction] = []
+        for seg in segments {
+            let instruction = AVMutableVideoCompositionInstruction()
+            instruction.timeRange = seg.range
+            let layer = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
+            let scale = min(renderSize.width / seg.size.width, renderSize.height / seg.size.height)
+            let tx = (renderSize.width - seg.size.width * scale) / 2
+            let ty = (renderSize.height - seg.size.height * scale) / 2
+            let t = seg.transform
+                .concatenating(CGAffineTransform(scaleX: scale, y: scale))
+                .concatenating(CGAffineTransform(translationX: tx, y: ty))
+            layer.setTransform(t, at: seg.range.start)
+            instruction.layerInstructions = [layer]
+            instructions.append(instruction)
+        }
+
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.renderSize = renderSize
+        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+        videoComposition.instructions = instructions
+
+        return Result(composition: composition,
+                      videoComposition: videoComposition,
+                      duration: CMTimeGetSeconds(cursor),
+                      renderSize: renderSize)
+    }
+}

@@ -1,0 +1,12 @@
+# Xcode / SwiftPM
+# 由 project.yml 用 xcodegen 產生
+SoonCut.xcodeproj/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
