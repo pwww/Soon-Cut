@@ -61,6 +61,10 @@ final class AppStore: ObservableObject {
     @Published var outputFormat: OutputFormat = OutputFormat(rawValue: UserDefaults.standard.string(forKey: "outputFormat") ?? "") ?? .original {
         didSet { UserDefaults.standard.set(outputFormat.rawValue, forKey: "outputFormat") }
     }
+    @Published var exportQuality: ExportQuality = ExportQuality(rawValue: UserDefaults.standard.string(forKey: "exportQuality") ?? "") ?? .standard {
+        didSet { UserDefaults.standard.set(exportQuality.rawValue, forKey: "exportQuality") }
+    }
+    @Published private(set) var exportProgress: Double?
     /// 新手引導（由 AppDelegate 設定）
     var showOnboarding: (() -> Void)?
     @Published private(set) var exportStatus: String?
@@ -419,13 +423,22 @@ final class AppStore: ObservableObject {
         guard !isExporting, !activeClips.isEmpty else { return }
         let url = OutputLibrary.newExportURL()
         exportStatus = "輸出中…"
+        exportProgress = 0
+        let format = outputFormat
+        let quality = exportQuality
         Task {
             do {
-                let duration = try await Exporter.export(clips: activeClips, subtitles: subtitles,
-                                                         format: outputFormat, to: url)
+                let duration = try await Exporter.export(
+                    clips: activeClips, subtitles: subtitles,
+                    format: format, quality: quality, to: url,
+                    progress: { [weak self] p in
+                        Task { @MainActor in
+                            if self?.exportStatus != nil { self?.exportProgress = p }
+                        }
+                    })
                 let item = ExportItem(file: url.lastPathComponent, status: .latest,
                                       createdAt: Date(), duration: duration,
-                                      format: outputFormat.label)
+                                      format: "\(format.label) · \(quality.label)")
                 exports.insert(item, at: 0)
                 OutputLibrary.save(exports)
                 outputTab = .latest
@@ -435,6 +448,7 @@ final class AppStore: ObservableObject {
                 errorMessage = "輸出失敗：" + Self.describe(error)
             }
             exportStatus = nil
+            exportProgress = nil
         }
     }
 

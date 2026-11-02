@@ -22,6 +22,7 @@ struct SubtitleEditor: View {
                 .frame(minHeight: 140, maxHeight: .infinity)
 
             formatBar
+            qualityBar
             platformBar
 
             actionBar
@@ -61,6 +62,26 @@ struct SubtitleEditor: View {
         }
     }
 
+    /// 輸出畫質與預估檔案大小
+    private var qualityBar: some View {
+        HStack(spacing: 8) {
+            Text("畫質").font(.caption).foregroundStyle(.secondary)
+            Picker("", selection: $store.exportQuality) {
+                ForEach(ExportQuality.allCases) { q in
+                    Text(q.label).tag(q)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 200)
+            Text("\(store.exportQuality.note) · 約 \(ByteCountFormatter.string(fromByteCount: store.exportQuality.estimatedBytes(duration: duration), countStyle: .file))")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+    }
+
     /// 這個比例適合的平台，以及長度是否超過上限
     private var platformBar: some View {
         HStack(spacing: 6) {
@@ -80,7 +101,8 @@ struct SubtitleEditor: View {
                 .foregroundStyle(over ? Color.orange : Color.green)
             }
             Spacer(minLength: 0)
-            Text("\(formatTime(duration)) · \(Int(canvas.width))×\(Int(canvas.height))")
+            let outSize = store.exportQuality.scaled(canvas)
+            Text("\(formatTime(duration)) · 輸出 \(Int(outSize.width))×\(Int(outSize.height))")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
@@ -108,7 +130,8 @@ struct SubtitleEditor: View {
                 if store.isExporting {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
-                        Text("輸出中…")
+                        Text("輸出中 \(Int((store.exportProgress ?? 0) * 100))%")
+                            .monospacedDigit()
                     }
                 } else {
                     Label("輸出影片", systemImage: "square.and.arrow.up")

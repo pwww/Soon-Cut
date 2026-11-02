@@ -83,15 +83,19 @@ struct MainPanelView: View {
     }
 
     private var regionInfo: some View {
-        Group {
-            if let r = store.region {
-                Text("範圍 \(Int(r.rect.width)) × \(Int(r.rect.height)) pt")
-            } else {
-                Text("尚未框選範圍，先按「範圍」")
+        HStack {
+            Group {
+                if let r = store.region {
+                    Text("範圍 \(Int(r.rect.width)) × \(Int(r.rect.height)) pt")
+                } else {
+                    Text("尚未框選範圍，先按「範圍」")
+                }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            Spacer()
+            EditionBadge()
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
     }
 
     // MARK: 片段（使用中＋暫存區）
@@ -349,5 +353,51 @@ struct ClipThumb: View {
                 .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
         )
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - 版本標示（開源版／免費版／付費版）
+
+struct EditionBadge: View {
+    @State private var showInfo = false
+    private let edition = Licensing.edition
+
+    var body: some View {
+        Button {
+            showInfo.toggle()
+        } label: {
+            Text(edition.label)
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(color.opacity(0.18)))
+                .foregroundStyle(color)
+        }
+        .buttonStyle(.plain)
+        .help("目前使用的版本")
+        .popover(isPresented: $showInfo, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Soon-Cut \(edition.label)").font(.headline)
+                Text(edition.explanation)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                    Text("版本 \(version)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(14)
+            .frame(width: 260)
+        }
+    }
+
+    private var color: Color {
+        switch edition {
+        case .openSource: return .green
+        case .free: return .orange
+        case .pro: return .accentColor
+        }
     }
 }
