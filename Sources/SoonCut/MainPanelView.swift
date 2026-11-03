@@ -313,12 +313,23 @@ struct ClipRow: View {
     @State private var draggingID: UUID?
     @State private var dragOffset: CGSize = .zero
     @State private var consumedX: CGFloat = 0   // 已經換過位置的水平距離
+    @State private var trashFrame: CGRect = .zero
+    @State private var overTrash = false
 
     private var size: CGSize { staged ? Self.stagedSize : Self.mainSize }
     private var step: CGFloat { size.width + Self.spacing }
     private var switchThreshold: CGFloat { size.height * 0.75 }
 
     var body: some View {
+        HStack(spacing: 6) {
+            thumbs
+                .zIndex(1)   // 拖曳中的縮圖要蓋在垃圾桶上面
+            TrashDropZone(height: size.height, active: draggingID != nil, targeted: overTrash)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { trashFrame = $0 }
+        }
+    }
+
+    private var thumbs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Self.spacing) {
                 ForEach(clips) { clip in
@@ -337,7 +348,7 @@ struct ClipRow: View {
                             store.previewMode = .clip
                         }
                         .gesture(
-                            DragGesture(minimumDistance: 4)
+                            DragGesture(minimumDistance: 4, coordinateSpace: .global)
                                 .onChanged { v in dragChanged(clip, v) }
                                 .onEnded { v in dragEnded(clip, v) }
                         )
@@ -352,6 +363,7 @@ struct ClipRow: View {
     }
 
     private var dropHint: String? {
+        if overTrash { return String(localized: "放開：丟到垃圾桶") }
         if !staged, dragOffset.height > switchThreshold { return String(localized: "放開：移到暫存") }
         if staged, dragOffset.height < -switchThreshold { return String(localized: "放開：加回剪輯") }
         return nil
@@ -363,6 +375,8 @@ struct ClipRow: View {
             consumedX = 0
         }
         dragOffset = CGSize(width: v.translation.width - consumedX, height: v.translation.height)
+        overTrash = trashFrame.insetBy(dx: -6, dy: -6).contains(v.location)
+        if overTrash { return }   // 停在垃圾桶上時不排序
 
         // 垂直拖遠了＝要換區，不做排序
         guard abs(v.translation.height) < switchThreshold,
@@ -379,8 +393,11 @@ struct ClipRow: View {
     }
 
     private func dragEnded(_ clip: Clip, _ v: DragGesture.Value) {
+        let dropOnTrash = trashFrame.insetBy(dx: -6, dy: -6).contains(v.location)
         withAnimation(.easeOut(duration: 0.18)) {
-            if !staged, v.translation.height > switchThreshold {
+            if dropOnTrash {
+                store.trash(clip)
+            } else if !staged, v.translation.height > switchThreshold {
                 store.setStaged(clip.id, true)
             } else if staged, v.translation.height < -switchThreshold {
                 store.setStaged(clip.id, false)
@@ -388,6 +405,7 @@ struct ClipRow: View {
             draggingID = nil
             dragOffset = .zero
             consumedX = 0
+            overTrash = false
         }
     }
 
@@ -403,6 +421,33 @@ struct ClipRow: View {
         Divider()
         Button("在 Finder 中顯示") { store.reveal(clip) }
         Button("丟到垃圾桶", role: .destructive) { store.trash(clip) }
+    }
+}
+
+/// 片段列右邊的垃圾桶：把縮圖拖上來放開＝丟到垃圾桶
+struct TrashDropZone: View {
+    let height: CGFloat
+    var active = false     // 正在拖曳片段
+    var targeted = false   // 縮圖正停在上面
+
+    var body: some View {
+        Image(systemName: targeted ? "trash.fill" : "trash")
+            .font(.system(size: 16, weight: .medium))
+            .foregroundStyle(targeted ? Color.white : (active ? Color.red : Color.secondary))
+            .frame(width: 36, height: height)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(targeted ? Color.red.opacity(0.85) : Color.secondary.opacity(active ? 0.15 : 0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(active ? Color.red.opacity(0.6) : Color.secondary.opacity(0.25),
+                                  style: StrokeStyle(lineWidth: 1, dash: active ? [] : [3, 3]))
+            )
+            .scaleEffect(targeted ? 1.08 : 1)
+            .animation(.easeOut(duration: 0.12), value: targeted)
+            .animation(.easeOut(duration: 0.12), value: active)
+            .help("把片段拖到這裡丟到垃圾桶")
     }
 }
 
