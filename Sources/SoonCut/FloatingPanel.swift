@@ -18,7 +18,9 @@ final class FloatingPanel: NSPanel {
         isReleasedWhenClosed = false
         titleVisibility = .hidden
         titlebarAppearsTransparent = true
-        isMovableByWindowBackground = false   // 只能從頂端拖動，避免跟內部拖曳衝突
+        // 不用 AppKit 的「整片背景都能拖」：會搶走縮圖、膠卷條的拖曳。
+        // 改由 SwiftUI 的 WindowDragGesture 只在空白處拖動視窗（MainPanelView）。
+        isMovableByWindowBackground = false
         let hosting = NSHostingView(rootView: rootView)
         // 視窗最小尺寸跟著 SwiftUI 內容的最小尺寸走，縮不到會跑版的大小
         hosting.sizingOptions = [.minSize]
@@ -28,6 +30,13 @@ final class FloatingPanel: NSPanel {
             let vf = screen.visibleFrame
             setFrameOrigin(NSPoint(x: vf.maxX - frame.width - 16, y: vf.maxY - frame.height - 16))
         }
+    }
+
+    /// 固定在最上層，或像一般視窗一樣可以被其他視窗蓋住
+    func setPinned(_ pinned: Bool) {
+        level = pinned ? NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1) : .normal
+        isFloatingPanel = pinned
+        if pinned { orderFrontRegardless() }
     }
 
     override var canBecomeKey: Bool { true }

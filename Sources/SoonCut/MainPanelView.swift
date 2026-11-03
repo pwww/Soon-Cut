@@ -22,8 +22,11 @@ struct MainPanelView: View {
         .padding(.top, 30)
         .padding(.bottom, 18)
         .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // 按住任何空白處都能拖動視窗；縮圖、膠卷條等自己有拖曳的地方優先
+        .contentShape(Rectangle())
+        .gesture(WindowDragGesture())
         .overlay(alignment: .top) {
-            // 拖動提示：視窗只能從最上方這條拖動
+            // 拖動提示
             Capsule()
                 .fill(.tertiary)
                 .frame(width: 36, height: 5)
@@ -94,6 +97,15 @@ struct MainPanelView: View {
             .disabled(store.isRecording)
             .help("同時錄麥克風（右鍵選擇麥克風）")
             .contextMenu { microphoneMenu }
+
+            Button {
+                store.pinned.toggle()
+            } label: {
+                Image(systemName: store.pinned ? "pin.fill" : "pin.slash")
+                    .foregroundStyle(store.pinned ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help(store.pinned ? "已固定在最上層（按一下取消，視窗可以被其他視窗蓋住）" : "沒有固定（按一下固定在最上層）")
 
             Button {
                 store.showOnboarding?()

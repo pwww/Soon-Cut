@@ -46,6 +46,10 @@ final class AppStore: ObservableObject {
     @Published var captureSystemAudio: Bool = (UserDefaults.standard.object(forKey: "captureSystemAudio") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(captureSystemAudio, forKey: "captureSystemAudio") }
     }
+    /// 浮動視窗固定在最上層（關掉就跟一般視窗一樣）
+    @Published var pinned: Bool = (UserDefaults.standard.object(forKey: "panelPinned") as? Bool) ?? true {
+        didSet { UserDefaults.standard.set(pinned, forKey: "panelPinned") }
+    }
     /// 同時錄麥克風（跟系統聲音各自獨立）
     @Published var captureMicrophone: Bool = UserDefaults.standard.bool(forKey: "captureMicrophone") {
         didSet { UserDefaults.standard.set(captureMicrophone, forKey: "captureMicrophone") }

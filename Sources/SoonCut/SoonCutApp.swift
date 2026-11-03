@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 @main
 struct SoonCutApp: App {
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: FloatingPanel?
     private var closeObserver: NSObjectProtocol?
     private var miniObservers: [NSObjectProtocol] = []
+    private var pinCancellable: AnyCancellable?
     private let onboarding = OnboardingWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -44,6 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(LicenseStore.shared))
         panel.orderFrontRegardless()
         self.panel = panel
+
+        // 圖釘按鈕：切換是否固定在最上層
+        pinCancellable = store.$pinned.sink { [weak panel] pinned in
+            panel?.setPinned(pinned)
+        }
 
         // 關掉浮動視窗時，淡色範圍框也一起收起來
         closeObserver = NotificationCenter.default.addObserver(

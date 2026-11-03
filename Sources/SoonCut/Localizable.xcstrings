@@ -1013,6 +1013,16 @@
         }
       }
     },
+    "已固定在最上層（按一下取消，視窗可以被其他視窗蓋住）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pinned on top (click to unpin so other windows can cover it)"
+          }
+        }
+      }
+    },
     "已移除浮水印": {
       "localizations": {
         "en": {
@@ -1505,6 +1515,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "沒有可以拼接的片段。"
+          }
+        }
+      }
+    },
+    "沒有固定（按一下固定在最上層）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not pinned (click to keep on top)"
           }
         }
       }
