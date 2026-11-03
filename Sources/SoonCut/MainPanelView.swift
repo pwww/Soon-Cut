@@ -25,7 +25,7 @@ struct MainPanelView: View {
         .padding(.horizontal, 18)
         .padding(.top, 30)
         .padding(.bottom, 18)
-        .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // 按住任何空白處都能拖動視窗；縮圖、膠卷條等自己有拖曳的地方優先。
         // 自己搬視窗（不用系統的拖動），避免拖到螢幕上緣被系統貼齊卡住。
         .contentShape(Rectangle())
@@ -68,15 +68,23 @@ struct MainPanelView: View {
 
     // MARK: 快捷列
 
+    /// 寬度夠：圖示＋文字；不夠：只剩圖示（文字不會被裁成半個字）
     private var toolbar: some View {
-        HStack(spacing: 8) {
+        ViewThatFits(in: .horizontal) {
+            toolbarRow(compact: false)
+            toolbarRow(compact: true)
+        }
+    }
+
+    private func toolbarRow(compact: Bool) -> some View {
+        HStack(spacing: compact ? 6 : 8) {
             Button {
                 store.selectRegion()
             } label: {
                 Label("範圍", systemImage: "viewfinder")
-                    .lineLimit(1)
+                    .labelStyle(ToolbarLabelStyle(compact: compact))
             }
-            .fixedSize()   // 文字一定完整顯示；視窗最小寬度會跟著撐開
+            .fixedSize()
             .disabled(store.isRecording)
             .help("在畫面上拖曳框選錄影範圍")
 
@@ -86,7 +94,7 @@ struct MainPanelView: View {
                 Label(store.isRecording ? formatTime(store.elapsed) : String(localized: "錄影"),
                       systemImage: store.isRecording ? "stop.circle.fill" : "record.circle")
                     .monospacedDigit()
-                    .lineLimit(1)
+                    .labelStyle(ToolbarLabelStyle(compact: compact && !store.isRecording))
             }
             .fixedSize()
             .tint(.red)
@@ -575,6 +583,24 @@ struct EditionBadge: View {
 }
 
 // MARK: - 收合／展開的小箭頭
+
+/// 工具列按鈕：寬版顯示圖示＋文字，窄版只顯示圖示
+struct ToolbarLabelStyle: LabelStyle {
+    let compact: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if compact {
+            configuration.icon
+        } else {
+            HStack(spacing: 5) {
+                configuration.icon
+                configuration.title
+            }
+            .lineLimit(1)
+            .fixedSize()
+        }
+    }
+}
 
 struct CollapseChevron: View {
     @Binding var collapsed: Bool
