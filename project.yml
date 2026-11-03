@@ -50,7 +50,7 @@ targets:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: "Apple Distribution"
           "CODE_SIGN_IDENTITY[sdk=macosx*]": "Apple Distribution"
-          PROVISIONING_PROFILE_SPECIFIER: ""
+          PROVISIONING_PROFILE_SPECIFIER: "SoonCut Mac App Store"
         # ⚠️ 這個組態存在的理由：付費牆、沙盒下的螢幕錄影、WhisperKit 模型下載
         # 這三件事都是**無聲失敗**，而 AppStore 組態是 Apple Distribution 手動簽章、
         # 本機跑不起來，等於驗不到。這個組態與它只差簽章方式。
