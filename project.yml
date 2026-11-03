@@ -63,7 +63,12 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: cc.aicolab.SoonCut
         PRODUCT_NAME: SoonCut
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: 1
+        CURRENT_PROJECT_VERSION: 2
+        # ⚠️ 只出 arm64。WhisperKit 的模型要 Apple 晶片才跑得動，出通用二進位的話
+        #    Intel Mac（macOS 15 還支援一部分）照樣下載得到，然後字幕整組壞掉——
+        #    使用者看到的是「這 App 有 bug」，不是「我的機器不支援」。
+        #    只出 arm64，App Store 就不會把它推給 Intel Mac。
+        ARCHS: arm64
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_EMIT_LOC_STRINGS: YES   # 建置時把字串抽進 Localizable.xcstrings
