@@ -101,7 +101,7 @@ td.pv{opacity:0;transition:opacity .4s}
   <div class="ribbon">
     <div class="tabs"><span>File</span><span>Home</span><span class="on">Insert</span><span>Data</span><span>View</span></div>
     <div class="rb">
-      <div class="rbtn" id="pivotBtn"><span class="ri">▦</span>PivotTable</div>
+      <div class="rbtn" id="pivotBtn"><span class="ri">▦</span>Summary</div>
       <div class="rbtn"><span class="ri g"></span><span class="bar " style="width:40px"></span></div>
       <div class="sep"></div>
       <div class="rbtn" id="chartBtn"><span class="ri c">▮▮</span>Chart</div>
@@ -115,7 +115,7 @@ td.pv{opacity:0;transition:opacity .4s}
       <div class="chart" id="chart"><div class="ct">Sum of Sales by Region</div><div class="bars" id="cbars"></div></div>
     </div>
     <aside class="fields" id="fields">
-      <div class="fh"><b>PivotTable Fields</b><span class="bar " style="width:30px"></span></div>
+      <div class="fh"><b>Summary Fields</b><span class="bar " style="width:30px"></span></div>
       <div class="fl"><label><i class="cb" data-f="Region"></i>Region</label><label><i class="cb"></i>Product</label><label><i class="cb"></i>Month</label><label><i class="cb" data-f="Sales"></i>Sales</label></div>
       <div class="areas">
         <div class="area"><div class="lbl">Rows</div><div class="chip c1">Region</div></div>
@@ -132,7 +132,7 @@ td.pv{opacity:0;transition:opacity .4s}
 
 const STEPS=[
  {target:'#dataRange',side:'bottom',title:'Select your data',text:'Drag across A1 to D13.'},
- {target:'#pivotBtn',side:'bottom',title:'Insert a PivotTable',text:'Find it under the Insert tab.'},
+ {target:'#pivotBtn',side:'bottom',title:'Insert a summary table',text:'Find it under the Insert tab.'},
  {target:'#fields',side:'left',title:'Drag fields into place',text:'Region to Rows, Sales to Values.'},
  {target:'#chartBtn',side:'bottom',title:'Turn it into a chart',text:'One click from the pivot.'},
 ];
