@@ -74,7 +74,9 @@ struct MainPanelView: View {
                 store.selectRegion()
             } label: {
                 Label("範圍", systemImage: "viewfinder")
+                    .lineLimit(1)
             }
+            .fixedSize()   // 文字一定完整顯示；視窗最小寬度會跟著撐開
             .disabled(store.isRecording)
             .help("在畫面上拖曳框選錄影範圍")
 
@@ -84,7 +86,9 @@ struct MainPanelView: View {
                 Label(store.isRecording ? formatTime(store.elapsed) : String(localized: "錄影"),
                       systemImage: store.isRecording ? "stop.circle.fill" : "record.circle")
                     .monospacedDigit()
+                    .lineLimit(1)
             }
+            .fixedSize()
             .tint(.red)
             .buttonStyle(.borderedProminent)
             .disabled(store.isBusy)
@@ -96,6 +100,7 @@ struct MainPanelView: View {
                 Text("9:16")
             }
             .toggleStyle(.button)
+            .fixedSize()
             .disabled(store.isRecording)
             .help("Shorts 模式：框選鎖定 9:16")
 
