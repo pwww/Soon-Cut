@@ -802,14 +802,19 @@ final class AppStore: ObservableObject {
     /// 在 Finder 中選取檔案並把 Finder 帶到最前面。
     /// 浮動視窗不會讓本 App 變成作用中，所以要明確叫起 Finder。
     static func revealInFinder(_ url: URL) {
-        let folder = url.deletingLastPathComponent()
-        let selected = FileManager.default.fileExists(atPath: url.path)
-            && NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: folder.path)
-        if !selected {
-            NSWorkspace.shared.open(folder)
+        // 浮動視窗是 nonactivating，App 本身不在前景；macOS 14 起非前景 App
+        // 叫別的 App 跳到前面會被系統忽略，Finder 只會在背景開，看起來像沒反應。
+        // 所以先讓自己成為前景，再把前景「讓給」Finder。
+        NSApp.activate()
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } else {
+            NSWorkspace.shared.open(url.deletingLastPathComponent())
         }
-        NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
-            .first?.activate()
+        if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
+            NSApp.yieldActivation(to: finder)
+            finder.activate(from: .current)
+        }
     }
 
     static func describe(_ error: Error) -> String {

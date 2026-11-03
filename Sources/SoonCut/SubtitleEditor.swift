@@ -430,7 +430,11 @@ struct ExportRow: View {
                     .font(.callout.weight(.semibold))
                 HStack(spacing: 6) {
                     Text(formatTime(item.duration)).monospacedDigit()
-                    if let format = item.format { Text(format) }
+                    if let format = item.format {
+                        // 舊紀錄存的是輸出當下的語言，顯示時換成目前語言
+                        Text(format.replacingOccurrences(of: "原始", with: OutputFormat.original.label)
+                                   .replacingOccurrences(of: "Original", with: OutputFormat.original.label))
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
