@@ -14,13 +14,16 @@ struct SubtitleEditor: View {
     @State private var duration: Double = 0
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
+    @AppStorage("subtitlePlayerHeight") private var playerHeight: Double = 220
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             PlayerView(player: player)
                 .background(Color.black)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(minHeight: 140, maxHeight: .infinity)
+                .frame(height: playerHeight)
+
+            ResizeHandle(height: $playerHeight, defaultHeight: 220)
 
             formatBar
             qualityBar
@@ -331,6 +334,7 @@ struct SubtitleRow: View {
 struct OutputView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedID: String?
+    @AppStorage("outputPreviewHeight") private var previewHeight: Double = 220
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -346,7 +350,8 @@ struct OutputView: View {
             // 預覽：選取的影片；沒選就預覽這一層最新的一支
             if let current = items.first(where: { $0.id == selectedID }) ?? items.first {
                 ExportPreview(url: current.url)
-                    .frame(minHeight: 140, maxHeight: .infinity)
+                    .frame(height: previewHeight)
+                ResizeHandle(height: $previewHeight, defaultHeight: 220)
             }
             if items.isEmpty {
                 Text(emptyText)
@@ -363,7 +368,7 @@ struct OutputView: View {
                         }
                     }
                 }
-                .frame(minHeight: 90, maxHeight: 240)   // 預覽拿剩下的空間
+                .frame(minHeight: 90, maxHeight: .infinity)   // 清單拿剩下的空間
             }
 
             HStack {

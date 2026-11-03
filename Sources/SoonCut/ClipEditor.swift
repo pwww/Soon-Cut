@@ -12,6 +12,7 @@ struct ClipEditor: View {
     @State private var draftRanges: [ClipRange] = []
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
+    @AppStorage("clipPlayerHeight") private var playerHeight: Double = 260
 
     private var keptLength: Double { draftRanges.reduce(0) { $0 + $1.length } }
     private var currentRangeIndex: Int? {
@@ -23,7 +24,9 @@ struct ClipEditor: View {
             PlayerView(player: player)
                 .background(Color.black)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(minHeight: 140, maxHeight: .infinity)
+                .frame(height: playerHeight)
+
+            ResizeHandle(height: $playerHeight, defaultHeight: 260)
 
             FilmstripTrimmer(
                 url: clip.url,
@@ -301,6 +304,50 @@ struct FilmstripTrimmer: View {
             }
         }
         frames = loaded
+    }
+}
+
+// MARK: - 拖曳調整高度的把手（預覽畫面與下方清單之間）
+
+/// 上下拖動調整上方區塊高度；雙擊回到預設。高度會記住。
+struct ResizeHandle: View {
+    @Binding var height: Double
+    var defaultHeight: Double
+    var minHeight: Double = 100
+
+    @State private var dragStart: Double?
+    @State private var hovering = false
+
+    /// 上限：螢幕可用高度的 6 成，避免把視窗撐出螢幕
+    private var maxHeight: Double {
+        Double((NSScreen.main?.visibleFrame.height ?? 900) * 0.6)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.clear.frame(height: 12)
+            Capsule()
+                .fill(hovering || dragStart != nil ? Color.accentColor : Color.secondary.opacity(0.35))
+                .frame(width: 44, height: 4)
+        }
+        .contentShape(Rectangle())
+        .onHover { inside in
+            hovering = inside
+            if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                .onChanged { v in
+                    if dragStart == nil { dragStart = height }
+                    let proposed = (dragStart ?? height) + Double(v.translation.height)
+                    height = min(max(proposed, minHeight), maxHeight)
+                }
+                .onEnded { _ in dragStart = nil }
+        )
+        .onTapGesture(count: 2) {
+            withAnimation(.easeOut(duration: 0.2)) { height = defaultHeight }
+        }
+        .help("上下拖動調整高度，雙擊回到預設")
     }
 }
 

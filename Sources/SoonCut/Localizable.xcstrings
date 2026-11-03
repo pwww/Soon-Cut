@@ -251,6 +251,16 @@
         }
       }
     },
+    "上下拖動調整高度，雙擊回到預設": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag up or down to resize; double-click to reset"
+          }
+        }
+      }
+    },
     "上傳後把影片標記為「已上傳」": {
       "localizations": {
         "en": {
