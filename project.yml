@@ -92,7 +92,23 @@ targets:
 # 在那條路徑上不生效，會跳出 Apple 登入框把測試卡住（CapyTalk 踩過）。
 # 從 Xcode 直接 Run，或 `xcodebuild -scheme SoonCut -configuration AppStore run`。
 schemes:
+  # 開源版（README 教一般人用的）：⌘R 就是 Debug，沒有浮水印、沒有付費牆
   SoonCut:
+    build:
+      targets:
+        SoonCut: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  # App Store 版：測浮水印、付費牆與本機 StoreKit 買斷流程，Archive 上架也用這個
+  SoonCut App Store:
     build:
       targets:
         SoonCut: all
@@ -102,9 +118,8 @@ schemes:
     test:
       config: Debug
     profile:
-      config: Release
+      config: AppStore
     analyze:
-      config: Debug
+      config: AppStoreDebug
     archive:
       config: AppStore
-
