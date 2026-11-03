@@ -15,15 +15,19 @@ struct SubtitleEditor: View {
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
     @AppStorage("subtitlePlayerHeight") private var playerHeight: Double = 220
+    @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            PlayerView(player: player)
-                .background(Color.black)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(height: playerHeight)
+            PreviewHeader(collapsed: $previewCollapsed)
+            if !previewCollapsed {
+                PlayerView(player: player)
+                    .background(Color.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(height: playerHeight)
 
-            ResizeHandle(height: $playerHeight, defaultHeight: 220)
+                ResizeHandle(height: $playerHeight, defaultHeight: 220)
+            }
 
             formatBar
             qualityBar
@@ -57,6 +61,9 @@ struct SubtitleEditor: View {
         }
         .onChange(of: isRecording) {
             if isRecording { player.pause() }
+        }
+        .onChange(of: previewCollapsed) {
+            if previewCollapsed { player.pause() }
         }
         .onChange(of: store.subtitles) { refreshOverlay() }
         .onChange(of: store.subtitlesOutdated) { refreshOverlay() }
@@ -335,6 +342,7 @@ struct OutputView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedID: String?
     @AppStorage("outputPreviewHeight") private var previewHeight: Double = 220
+    @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -349,9 +357,12 @@ struct OutputView: View {
             let items = store.exports(in: store.outputTab)
             // 預覽：選取的影片；沒選就預覽這一層最新的一支
             if let current = items.first(where: { $0.id == selectedID }) ?? items.first {
-                ExportPreview(url: current.url)
-                    .frame(height: previewHeight)
-                ResizeHandle(height: $previewHeight, defaultHeight: 220)
+                PreviewHeader(collapsed: $previewCollapsed)
+                if !previewCollapsed {
+                    ExportPreview(url: current.url)
+                        .frame(height: previewHeight)
+                    ResizeHandle(height: $previewHeight, defaultHeight: 220)
+                }
             }
             if items.isEmpty {
                 Text(emptyText)

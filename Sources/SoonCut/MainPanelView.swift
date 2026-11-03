@@ -4,6 +4,9 @@ import UniformTypeIdentifiers
 struct MainPanelView: View {
     @EnvironmentObject var store: AppStore
     @State private var windowDrag: (mouse: NSPoint, origin: NSPoint)?
+    @AppStorage("clipsCollapsed") private var clipsCollapsed = false
+    @AppStorage("stagingCollapsed") private var stagingCollapsed = false
+    @AppStorage("tabsCollapsed") private var tabsCollapsed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -156,6 +159,7 @@ struct MainPanelView: View {
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
+                CollapseChevron(collapsed: $clipsCollapsed)
                 Text("剪輯片段").font(.headline)
                 Text("\(active.count) 段 · \(formatTime(total))")
                     .font(.caption.monospacedDigit())
@@ -177,14 +181,17 @@ struct MainPanelView: View {
                 .help("打開片段資料夾")
             }
 
-            if active.isEmpty {
-                emptyRow(staged.isEmpty ? "錄完或匯入的片段會出現在這裡（也可以把影片拖進來）" : "把暫存區的片段往上拖回來",
-                         height: ClipRow.mainSize.height)
-            } else {
-                ClipRow(clips: active, staged: false)
+            if !clipsCollapsed {
+                if active.isEmpty {
+                    emptyRow(staged.isEmpty ? "錄完或匯入的片段會出現在這裡（也可以把影片拖進來）" : "把暫存區的片段往上拖回來",
+                             height: ClipRow.mainSize.height)
+                } else {
+                    ClipRow(clips: active, staged: false)
+                }
             }
 
             HStack {
+                CollapseChevron(collapsed: $stagingCollapsed)
                 Text("暫存區").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
                 Text("\(staged.count)").font(.caption).foregroundStyle(.tertiary)
                 Spacer()
@@ -194,10 +201,12 @@ struct MainPanelView: View {
             }
             .padding(.top, 2)
 
-            if staged.isEmpty {
-                emptyRow("沒有暫存的片段", height: ClipRow.stagedSize.height)
-            } else {
-                ClipRow(clips: staged, staged: true)
+            if !stagingCollapsed {
+                if staged.isEmpty {
+                    emptyRow("沒有暫存的片段", height: ClipRow.stagedSize.height)
+                } else {
+                    ClipRow(clips: staged, staged: true)
+                }
             }
         }
         // 從 Finder 拖影片進來＝匯入
@@ -242,14 +251,22 @@ struct MainPanelView: View {
     @ViewBuilder
     private var previewSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker("", selection: $store.previewMode) {
-                ForEach(PreviewMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
+            HStack(spacing: 6) {
+                CollapseChevron(collapsed: $tabsCollapsed)
+                Picker("", selection: $store.previewMode) {
+                    ForEach(PreviewMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .onChange(of: store.previewMode) {
+                    // 點分頁時自動展開
+                    if tabsCollapsed { withAnimation(.easeOut(duration: 0.18)) { tabsCollapsed = false } }
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
 
+            if !tabsCollapsed {
             switch store.previewMode {
             case .clip:
                 if let clip = store.selectedClip {
@@ -265,6 +282,7 @@ struct MainPanelView: View {
                 }
             case .output:
                 OutputView()
+            }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -500,6 +518,42 @@ struct EditionBadge: View {
         case .openSource: return .green
         case .free: return .orange
         case .pro: return .accentColor
+        }
+    }
+}
+
+// MARK: - 收合／展開的小箭頭
+
+struct CollapseChevron: View {
+    @Binding var collapsed: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.18)) { collapsed.toggle() }
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(.caption.weight(.semibold))
+                .rotationEffect(.degrees(collapsed ? -90 : 0))
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .help(collapsed ? "展開" : "收合")
+    }
+}
+
+/// 預覽畫面上方的標題列：可以把預覽收起來，讓下方清單有更多空間
+struct PreviewHeader: View {
+    @Binding var collapsed: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            CollapseChevron(collapsed: $collapsed)
+            Text("預覽")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
         }
     }
 }

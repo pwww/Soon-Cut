@@ -13,6 +13,7 @@ struct ClipEditor: View {
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
     @AppStorage("clipPlayerHeight") private var playerHeight: Double = 260
+    @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     private var keptLength: Double { draftRanges.reduce(0) { $0 + $1.length } }
     private var currentRangeIndex: Int? {
@@ -21,12 +22,15 @@ struct ClipEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            PlayerView(player: player)
-                .background(Color.black)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(height: playerHeight)
+            PreviewHeader(collapsed: $previewCollapsed)
+            if !previewCollapsed {
+                PlayerView(player: player)
+                    .background(Color.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(height: playerHeight)
 
-            ResizeHandle(height: $playerHeight, defaultHeight: 260)
+                ResizeHandle(height: $playerHeight, defaultHeight: 260)
+            }
 
             FilmstripTrimmer(
                 url: clip.url,
@@ -92,6 +96,9 @@ struct ClipEditor: View {
         }
         .onChange(of: isRecording) {
             if isRecording { player.pause() }
+        }
+        .onChange(of: previewCollapsed) {
+            if previewCollapsed { player.pause() }
         }
         .onDisappear {
             player.pause()
