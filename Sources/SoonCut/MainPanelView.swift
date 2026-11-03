@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct MainPanelView: View {
     @EnvironmentObject var store: AppStore
+    @State private var windowDrag: (mouse: NSPoint, origin: NSPoint)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,9 +23,21 @@ struct MainPanelView: View {
         .padding(.top, 30)
         .padding(.bottom, 18)
         .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // 按住任何空白處都能拖動視窗；縮圖、膠卷條等自己有拖曳的地方優先
+        // 按住任何空白處都能拖動視窗；縮圖、膠卷條等自己有拖曳的地方優先。
+        // 自己搬視窗（不用系統的拖動），避免拖到螢幕上緣被系統貼齊卡住。
         .contentShape(Rectangle())
-        .gesture(WindowDragGesture())
+        .gesture(
+            DragGesture(minimumDistance: 2)
+                .onChanged { _ in
+                    guard let panel = FloatingPanel.current else { return }
+                    let mouse = NSEvent.mouseLocation
+                    if windowDrag == nil { windowDrag = (mouse, panel.frame.origin) }
+                    guard let start = windowDrag else { return }
+                    panel.move(to: NSPoint(x: start.origin.x + mouse.x - start.mouse.x,
+                                           y: start.origin.y + mouse.y - start.mouse.y))
+                }
+                .onEnded { _ in windowDrag = nil }
+        )
         .overlay(alignment: .top) {
             // 拖動提示
             Capsule()
