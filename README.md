@@ -88,6 +88,8 @@ Open the video or page you want to capture. Click **Range** (範圍) and drag ov
 
 ### Step 2 — Record
 
+<p align="center"><img src="docs/gifs/1-record-region.gif" width="760" alt="Framing a region and recording a tutorial"></p>
+
 Click **Record** (錄影) or press **⇧⌘R**. The outline turns red while recording. Click again to stop. Record as many clips as you like; each one appears in the clip strip. The speaker and microphone buttons work independently — record computer audio, your voice, both, or neither. Right-click the microphone button to choose a mic. You can also import existing videos with the Import button or by dragging files into the clip strip.
 
 ### Step 3 — Trim and arrange
@@ -110,7 +112,11 @@ Pick a ratio. Soon-Cut shows which platforms it suits and warns you when the vid
 | 1:1 | Threads, IG posts, YouTube Shorts |
 | 16:9 | Threads, YouTube |
 
+<p align="center"><img src="docs/gifs/2-captions-and-sizes.gif" width="760" alt="Choosing ratio, quality and caption language"></p>
+
 ### Step 6 — Drag to upload
+
+<p align="center"><img src="docs/gifs/3-drag-to-upload.gif" width="760" alt="Dragging the exported video into an upload box"></p>
 
 Open the **Output** (輸出) tab. Drag the video card straight into the upload box on Threads or any website, or onto Finder. Mark it **Uploaded** afterwards, and archive old videos to keep the list tidy.
 

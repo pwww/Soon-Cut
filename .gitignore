@@ -10,3 +10,7 @@ Package.resolved
 
 # macOS
 .DS_Store
+
+# 錄影素材與暫存
+SoonCut-ScreenRecord.mov
+.work/

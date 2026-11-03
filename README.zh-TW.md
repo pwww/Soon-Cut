@@ -88,6 +88,8 @@ open SoonCut.xcodeproj
 
 ### 步驟 2：錄影
 
+<p align="center"><img src="docs/gifs/1-record-region.gif" width="760" alt="框選範圍並錄下教學"></p>
+
 按「**錄影**」或 **⇧⌘R** 開始，錄影時框線變紅色，再按一次停止。可以連續錄好幾段，每段都會出現在片段列。喇叭和麥克風按鈕各自獨立，可以只錄電腦聲音、只錄你的旁白、兩個都錄或都不錄；在麥克風按鈕按右鍵可以選擇麥克風。現有的影片也可以按「匯入」或直接拖進片段列。
 
 ### 步驟 3：剪輯與排序
@@ -110,7 +112,11 @@ open SoonCut.xcodeproj
 | 1:1 | Threads、IG 貼文、YouTube Shorts |
 | 16:9 | Threads、YouTube |
 
+<p align="center"><img src="docs/gifs/2-captions-and-sizes.gif" width="760" alt="選比例、畫質和字幕語言"></p>
+
 ### 步驟 6：拖去上傳
+
+<p align="center"><img src="docs/gifs/3-drag-to-upload.gif" width="760" alt="把輸出的影片拖進上傳框"></p>
 
 切到「**輸出**」分頁，把影片卡片直接拖進 Threads 或任何網站的上傳框，也可以拖到 Finder。發完可以標記「**已上傳**」，舊影片可以封存。
 
