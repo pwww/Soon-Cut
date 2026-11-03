@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flowbot — sample app</title>
+<style>:root{--accent:#0d9488}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#dde1e8;font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;color:#2b3242;overflow:hidden;-webkit-font-smoothing:antialiased}
+:root{--win-w:min(1040px,calc(100vw - 440px));--win-h:min(640px,calc(100vh - 140px))}
+body.full{--win-w:calc(100vw - 56px)}
+.win{position:fixed;left:28px;top:50%;transform:translateY(-50%);width:var(--win-w);height:var(--win-h);background:#fff;border-radius:12px;
+  box-shadow:0 24px 60px rgba(25,35,60,.16),0 0 0 1px rgba(20,30,50,.07);display:flex;flex-direction:column;overflow:hidden}
+.titlebar{height:40px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #eceef2;background:#f7f8fa}
+.dots{display:flex;gap:7px}.dots i{width:11px;height:11px;border-radius:50%;background:#d6d9df;display:block}
+.apptitle{font-weight:650;color:#4a5265;display:flex;align-items:center;gap:8px}
+.mark{width:18px;height:18px;border-radius:5px;background:var(--accent);opacity:.9}
+.apptitle small{font-weight:500;color:#9aa2b1}
+.guide{margin-left:auto;display:flex;align-items:center;gap:8px;color:#6b7385;font-size:12px;font-weight:600}
+.guide b{color:var(--accent)}
+.pips{display:flex;gap:4px}.pips i{width:16px;height:4px;border-radius:2px;background:#dfe2e8;display:block;transition:background .3s}
+.pips i.on{background:var(--accent)}
+.sample{font-size:10px;letter-spacing:.09em;font-weight:700;color:#8a93a3;border:1px dashed #b7bfcb;border-radius:999px;padding:2px 8px}
+body.nosample .sample{display:none}
+.bar{display:inline-block;height:7px;border-radius:4px;background:#e2e5ea;vertical-align:middle}
+.bar.d{background:#cfd4dc}
+.btn{border:1px solid #dde1e7;background:#fff;border-radius:7px;padding:6px 11px;font:600 12px/1 inherit;font-family:inherit;color:#3a4254;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#98a0ae}
+/* guide overlay */
+.ring{position:fixed;border:2px solid var(--accent);border-radius:10px;pointer-events:none;transition:all .35s cubic-bezier(.3,.7,.3,1);z-index:50;
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 20%,transparent);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 8%,transparent)}}
+.callout{position:fixed;width:236px;background:#1e2331;color:#fff;border-radius:12px;padding:12px 14px 13px;z-index:51;pointer-events:none;
+  box-shadow:0 12px 30px rgba(10,15,30,.28);transition:left .35s cubic-bezier(.3,.7,.3,1),top .35s cubic-bezier(.3,.7,.3,1),opacity .2s}
+.callout .k{display:flex;align-items:center;gap:7px;font-size:11px;color:#a9b2c4;font-weight:600;letter-spacing:.04em}
+.callout .n{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+.callout .t{font-size:15px;font-weight:700;margin-top:6px;line-height:1.25}
+.callout .d{font-size:12px;color:#c3cad8;margin-top:3px}
+body.nohints .ring,body.nohints .callout{opacity:0!important}
+.help{position:fixed;left:28px;bottom:14px;font-size:11.5px;color:#7d8596;background:rgba(255,255,255,.75);padding:5px 10px;border-radius:7px;transition:opacity .5s;z-index:60}
+.help.hide{opacity:0}
+.help kbd{font:600 10.5px ui-monospace,Menlo,monospace;background:#fff;border:1px solid #d7dbe2;border-radius:4px;padding:0 4px}
+.toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,20px);opacity:0;background:#1e2331;color:#fff;border-radius:9px;padding:9px 14px;font-weight:600;
+  display:flex;gap:8px;align-items:center;transition:all .35s;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast .ok{width:18px;height:18px;border-radius:50%;background:#22c55e;display:grid;place-items:center;font-size:11px}
+
+.tools{height:48px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #eceef2}
+.crumb{color:#8a92a2;font-weight:600}.crumb span{margin:0 4px;color:#c0c6d0}.crumb b{color:#2b3242}
+.draft{font-size:11px;font-weight:700;color:#b7791f;background:#fdf3e1;border-radius:5px;padding:2px 7px}
+.btn svg{width:11px;height:11px;fill:currentColor}
+.main{flex:1;display:flex;min-height:0}
+.lib{width:220px;flex:none;border-right:1px solid #eceef2;padding:12px;background:#fbfbfd;display:flex;flex-direction:column;gap:7px}
+.search{height:30px;border-radius:7px;background:#f1f3f6;display:flex;align-items:center;padding:0 10px;margin-bottom:6px}
+.lib .lbl{margin:8px 2px 0}
+.card{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid #e6e9ee;border-radius:9px;background:#fff;font-size:12.5px;cursor:grab}
+.card b{font-weight:650}.card .bar{margin-top:5px;height:5px}.card.dim{opacity:.6}
+.ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex:none;background:#eef0f4;color:#7b8395}
+.ico.t{background:#fff1d6;color:#c77d00}.ico.a{background:#dcf5ec;color:#0f8a61}.ico.c{background:#e9e6ff;color:#5a4fd6}.ico.m{background:#dff0ff;color:#1f6fd1}
+.canvas{flex:1;position:relative;background:#f6f7f9;background-image:radial-gradient(#dde1e7 1px,transparent 1px);background-size:20px 20px;display:grid;place-items:center;min-width:0;overflow:hidden}
+.slot{position:absolute;left:8%;top:calc(50% - 60px);width:200px;height:64px;border:2px dashed #c9cfd8;border-radius:12px;display:grid;place-items:center;color:#98a0ae;font-weight:600;transition:opacity .3s}
+.flow{display:grid;grid-template-columns:auto 30px auto 30px auto;grid-template-rows:auto 56px auto;align-items:center;transform:translateY(-10px)}
+.node{position:relative;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e3e6ec;border-radius:12px;padding:10px 10px;width:152px;
+  box-shadow:0 4px 14px rgba(30,40,60,.07);opacity:0;transform:scale(.85);transition:all .4s cubic-bezier(.3,1.4,.5,1)}
+.node small{display:block;font-size:10.5px;color:#98a0ae;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.node b{font-weight:650;font-size:12px;white-space:nowrap}
+.chk{position:absolute;right:-7px;top:-7px;width:20px;height:20px;border-radius:50%;background:#22c55e;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;opacity:0;transform:scale(.5);transition:all .3s}
+.n1{grid-area:1/1}.w1{grid-area:1/2}.n2{grid-area:1/3}.w2{grid-area:1/4}.n3{grid-area:1/5}.w3{grid-area:2/5}.n4{grid-area:3/5}
+.wire{height:2px;background:#b8bfcb;position:relative;transform:scaleX(0);transform-origin:left;transition:transform .35s .1s}
+.wire:after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:7px solid #b8bfcb;border-right:0}
+.vwire{justify-self:center;width:2px;height:100%;background:#b8bfcb;position:relative;transform:scaleY(0);transform-origin:top;transition:transform .35s .1s}
+.vwire span{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#0f8a61;background:#dcf5ec;padding:1px 6px;border-radius:5px}
+.n1,.n2,.w1{}
+.st-1 #slot{opacity:0}.st-1 .n1{opacity:1;transform:none}
+.st-2 .w1{transform:none}.st-2 .n2{opacity:1;transform:none}
+.st-3 .w2,.st-3 .w3{transform:none}.st-3 .n3,.st-3 .n4{opacity:1;transform:none}
+.st-4 .node{border-color:#9be3b7}
+.st-4 .chk{opacity:1;transform:none}
+.st-4 .n2 .chk{transition-delay:.3s}.st-4 .n3 .chk{transition-delay:.6s}.st-4 .n4 .chk{transition-delay:.9s}
+.st-4 .n2{transition-delay:.3s}.st-4 .n3{transition-delay:.6s}.st-4 .n4{transition-delay:.9s}
+.st-4 .toast{opacity:1;transform:translate(-50%,0);transition-delay:1.1s}
+</style></head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="apptitle"><span class="mark"></span>Flowbot <small>— Flow editor</small></div>
+    <div class="guide">Getting started · Step <b>1</b> / <span class="tot"></span><div class="pips"></div></div>
+    <span class="sample">SAMPLE APP</span>
+  </div>
+
+  <div class="tools">
+    <span class="crumb">My flows <span>/</span> <b>New order alert</b></span>
+    <span class="draft">Draft</span>
+    <div style="flex:1"></div>
+    <span class="bar " style="width:70px"></span>
+    <button class="btn" id="runBtn"><svg viewBox="0 0 16 16"><path d="M5 3l8 5-8 5z"/></svg>Test run</button>
+    <button class="btn primary">Publish</button>
+  </div>
+  <div class="main">
+    <aside class="lib">
+      <div class="search"><span class="bar " style="width:90px"></span></div>
+      <div class="lbl">Triggers</div>
+      <div class="card" id="libTrigger"><span class="ico t">⚡</span><div><b>Form submitted</b><br><span class="bar " style="width:80px"></span></div></div>
+      <div class="lbl">Actions</div>
+      <div class="card" id="libAction"><span class="ico a">▦</span><div><b>Add row to sheet</b><br><span class="bar " style="width:70px"></span></div></div>
+      <div class="card" id="libCond"><span class="ico c">⑂</span><div><b>If / else</b><br><span class="bar " style="width:86px"></span></div></div>
+      <div class="card"><span class="ico m">✉</span><div><b>Send message</b><br><span class="bar " style="width:64px"></span></div></div>
+      <div class="card dim"><span class="ico"></span><div><span class="bar d" style="width:90px"></span><br><span class="bar " style="width:60px"></span></div></div>
+    </aside>
+    <section class="canvas">
+      <div class="slot" id="slot">Drag a trigger here to start</div>
+      <div class="flow">
+        <div class="node n1"><span class="ico t">⚡</span><div><small>Trigger</small><b>Form submitted</b></div><span class="chk">✓</span></div>
+        <div class="wire w1"></div>
+        <div class="node n2"><span class="ico a">▦</span><div><small>Action</small><b>Add row to sheet</b></div><span class="chk">✓</span></div>
+        <div class="wire w2"></div>
+        <div class="node n3"><span class="ico c">⑂</span><div><small>Condition</small><b>If amount &gt; 100</b></div><span class="chk">✓</span></div>
+        <div class="vwire w3"><span>Yes</span></div>
+        <div class="node n4"><span class="ico m">✉</span><div><small>Action</small><b>Send message</b></div><span class="chk">✓</span></div>
+      </div>
+      <div class="toast"><span class="ok">✓</span>Test passed · 4 steps in 1.2s</div>
+    </section>
+  </div>
+
+</div>
+<script>
+
+const STEPS=[
+ {target:'#libTrigger',side:'right',title:'Add a trigger',text:'Start the flow when a form is submitted.'},
+ {target:'#libAction',side:'right',title:'Connect an action',text:'Save each answer as a new row.'},
+ {target:'#libCond',side:'right',title:'Add a condition',text:'Only notify for orders over 100.'},
+ {target:'#runBtn',side:'bottom',title:'Run a test',text:'Check every step before publishing.'},
+];
+const DONE={target:'.n4',side:'left',title:'Your flow works',text:'Publish it when you are ready.',noRing:true};
+
+document.querySelector('.tot').textContent = STEPS.length;
+
+
+const total = STEPS.length;
+let cur = 0;
+const ring = document.createElement('div'); ring.className='ring'; document.body.appendChild(ring);
+const call = document.createElement('div'); call.className='callout'; document.body.appendChild(call);
+const pips = document.querySelector('.pips');
+const stepNo = document.querySelector('.guide b');
+pips.innerHTML = STEPS.map(()=>'<i></i>').join('');
+
+function apply(){
+  for(let k=1;k<=total;k++) document.body.classList.toggle('st-'+k, k<=cur);
+  [...pips.children].forEach((p,k)=>p.classList.toggle('on',k<cur));
+  stepNo.textContent = Math.min(cur+1,total);
+  if (typeof onStep==='function') onStep(cur);
+  setTimeout(place, 60); setTimeout(place, 450); setTimeout(place, 800);
+}
+function place(){
+  let s, el, num, kicker;
+  if (cur < total){ s=STEPS[cur]; num=cur+1; kicker='Step '+num+' of '+total; }
+  else { s=DONE; num='✓'; kicker='All done'; }
+  el = document.querySelector(s.target);
+  if(!el){ return; }
+  const r = el.getBoundingClientRect(), pad=6;
+  Object.assign(ring.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px',
+    opacity: s.noRing?0:1});
+  call.innerHTML = `<div class="k"><span class="n">${num}</span>${kicker}</div><div class="t">${s.title}</div>${s.text?`<div class="d">${s.text}</div>`:''}`;
+  const cw = 236, ch = call.offsetHeight, gap = 16;
+  let x, y; const side = s.side||'right';
+  if(side==='right'){x=r.right+gap+pad;y=r.top+r.height/2-ch/2}
+  if(side==='left'){x=r.left-gap-pad-cw;y=r.top+r.height/2-ch/2}
+  if(side==='bottom'){x=r.left+r.width/2-cw/2;y=r.bottom+gap+pad}
+  if(side==='top'){x=r.left+r.width/2-cw/2;y=r.top-gap-pad-ch}
+  const w = document.querySelector('.win').getBoundingClientRect();
+  x=Math.max(w.left+8,Math.min(x,w.right-cw-8)); y=Math.max(w.top+48,Math.min(y,w.bottom-ch-8));
+  call.style.left=x+'px'; call.style.top=y+'px';
+}
+function next(){ if(cur<total){cur++;apply();} }
+function prev(){ if(cur>0){cur--;apply();} }
+document.addEventListener('keydown',e=>{
+  if(e.target.isContentEditable||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==='arrowright'||k===' '){e.preventDefault();next();}
+  else if(k==='arrowleft')prev();
+  else if(k==='r'){cur=0;apply();}
+  else if(k==='h')document.body.classList.toggle('nohints');
+  else if(k==='s')document.body.classList.toggle('nosample');
+  else if(k==='f'){document.body.classList.toggle('full');setTimeout(place,50);}
+  else if(k==='?'||k==='/')help.classList.toggle('hide');
+});
+// 直接點被圈起來的地方也會前進（錄影時看起來就像真的在操作）
+document.addEventListener('click',e=>{
+  if(cur>=total)return;
+  const t=document.querySelector(STEPS[cur].target);
+  if(t&&t.contains(e.target))next();
+});
+window.addEventListener('resize',place);
+const help=document.createElement('div');help.className='help';
+help.innerHTML='<kbd>→</kbd> next · <kbd>←</kbd> back · click the highlighted spot · <kbd>R</kbd> reset · <kbd>H</kbd> hints · <kbd>S</kbd> sample tag · <kbd>F</kbd> width · <kbd>?</kbd> this help';
+document.body.appendChild(help);setTimeout(()=>help.classList.add('hide'),5000);
+apply();
+
+</script>
+</body></html>

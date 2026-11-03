@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gridwise — sample app</title>
+<style>:root{--accent:#16a34a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#dde1e8;font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;color:#2b3242;overflow:hidden;-webkit-font-smoothing:antialiased}
+:root{--win-w:min(1040px,calc(100vw - 440px));--win-h:min(640px,calc(100vh - 140px))}
+body.full{--win-w:calc(100vw - 56px)}
+.win{position:fixed;left:28px;top:50%;transform:translateY(-50%);width:var(--win-w);height:var(--win-h);background:#fff;border-radius:12px;
+  box-shadow:0 24px 60px rgba(25,35,60,.16),0 0 0 1px rgba(20,30,50,.07);display:flex;flex-direction:column;overflow:hidden}
+.titlebar{height:40px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #eceef2;background:#f7f8fa}
+.dots{display:flex;gap:7px}.dots i{width:11px;height:11px;border-radius:50%;background:#d6d9df;display:block}
+.apptitle{font-weight:650;color:#4a5265;display:flex;align-items:center;gap:8px}
+.mark{width:18px;height:18px;border-radius:5px;background:var(--accent);opacity:.9}
+.apptitle small{font-weight:500;color:#9aa2b1}
+.guide{margin-left:auto;display:flex;align-items:center;gap:8px;color:#6b7385;font-size:12px;font-weight:600}
+.guide b{color:var(--accent)}
+.pips{display:flex;gap:4px}.pips i{width:16px;height:4px;border-radius:2px;background:#dfe2e8;display:block;transition:background .3s}
+.pips i.on{background:var(--accent)}
+.sample{font-size:10px;letter-spacing:.09em;font-weight:700;color:#8a93a3;border:1px dashed #b7bfcb;border-radius:999px;padding:2px 8px}
+body.nosample .sample{display:none}
+.bar{display:inline-block;height:7px;border-radius:4px;background:#e2e5ea;vertical-align:middle}
+.bar.d{background:#cfd4dc}
+.btn{border:1px solid #dde1e7;background:#fff;border-radius:7px;padding:6px 11px;font:600 12px/1 inherit;font-family:inherit;color:#3a4254;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#98a0ae}
+/* guide overlay */
+.ring{position:fixed;border:2px solid var(--accent);border-radius:10px;pointer-events:none;transition:all .35s cubic-bezier(.3,.7,.3,1);z-index:50;
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 20%,transparent);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 8%,transparent)}}
+.callout{position:fixed;width:236px;background:#1e2331;color:#fff;border-radius:12px;padding:12px 14px 13px;z-index:51;pointer-events:none;
+  box-shadow:0 12px 30px rgba(10,15,30,.28);transition:left .35s cubic-bezier(.3,.7,.3,1),top .35s cubic-bezier(.3,.7,.3,1),opacity .2s}
+.callout .k{display:flex;align-items:center;gap:7px;font-size:11px;color:#a9b2c4;font-weight:600;letter-spacing:.04em}
+.callout .n{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+.callout .t{font-size:15px;font-weight:700;margin-top:6px;line-height:1.25}
+.callout .d{font-size:12px;color:#c3cad8;margin-top:3px}
+body.nohints .ring,body.nohints .callout{opacity:0!important}
+.help{position:fixed;left:28px;bottom:14px;font-size:11.5px;color:#7d8596;background:rgba(255,255,255,.75);padding:5px 10px;border-radius:7px;transition:opacity .5s;z-index:60}
+.help.hide{opacity:0}
+.help kbd{font:600 10.5px ui-monospace,Menlo,monospace;background:#fff;border:1px solid #d7dbe2;border-radius:4px;padding:0 4px}
+.toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,20px);opacity:0;background:#1e2331;color:#fff;border-radius:9px;padding:9px 14px;font-weight:600;
+  display:flex;gap:8px;align-items:center;transition:all .35s;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast .ok{width:18px;height:18px;border-radius:50%;background:#22c55e;display:grid;place-items:center;font-size:11px}
+
+.ribbon{flex:none;border-bottom:1px solid #e6e9ee;background:#fafbfc}
+.tabs{display:flex;gap:2px;padding:6px 10px 0}.tabs span{padding:5px 12px;border-radius:6px 6px 0 0;font-weight:600;color:#6b7385}
+.tabs .on{background:#fff;color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+.rb{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#fff}
+.rbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 10px;border-radius:7px;font-size:11.5px;font-weight:600;color:#3e4658;min-width:64px}
+.ri{width:26px;height:22px;border-radius:5px;display:grid;place-items:center;background:#e3f4e8;color:var(--accent);font-size:14px;letter-spacing:-3px}
+.ri.g{background:#eef0f3}.ri.c{background:#e7f0fe;color:#2f6fd8;font-size:11px}
+.sep{width:1px;height:34px;background:#e6e9ee;margin:0 4px}
+.fbar{flex:none;height:32px;display:flex;align-items:center;gap:10px;padding:0 10px;border-bottom:1px solid #e6e9ee;font-size:12.5px}
+.nb{width:78px;border:1px solid #e1e4ea;border-radius:5px;padding:3px 7px;font-weight:600}
+.fx{color:#9aa2b1;font-style:italic;font-weight:700}
+.v1{display:none}.st-1 .v0{display:none}.st-1 .v1{display:inline}
+.main{flex:1;display:flex;min-height:0}
+.sheet{flex:1;overflow:hidden;position:relative;min-width:0}
+table{border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+td,th{border:1px solid #edf0f3;height:24px;padding:0 8px;white-space:nowrap;overflow:hidden}
+th{background:#f6f7f9;color:#8a92a2;font-weight:600;font-size:11.5px}
+th.rh{width:36px}td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.hd{font-weight:700}
+.st-1 td.sel{background:#e8f6ec}.st-1 td.sel.top{box-shadow:inset 0 2px 0 var(--accent)}.st-1 td.sel.bot{box-shadow:inset 0 -2px 0 var(--accent)}
+.st-1 td.sel.l{box-shadow:inset 2px 0 0 var(--accent)}.st-1 td.sel.r{box-shadow:inset -2px 0 0 var(--accent)}
+td.pv{opacity:0;transition:opacity .4s}
+.st-3 td.pv{opacity:1}td.pv.hd{color:var(--accent)}td.pv.tot{font-weight:700;border-top:1.5px solid #9fb0a5}
+.fields{width:0;flex:none;overflow:hidden;border-left:1px solid #e6e9ee;background:#fbfbfd;transition:width .4s}
+.st-2 .fields{width:230px}
+.fh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;width:230px}
+.fl{display:flex;flex-direction:column;gap:2px;padding:0 10px;width:230px}
+.fl label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:5px;font-weight:550}
+.cb{width:14px;height:14px;border:1.5px solid #b9c0cc;border-radius:3px;display:grid;place-items:center;font-size:10px;font-style:normal;color:#fff}
+.st-3 .cb[data-f]{background:var(--accent);border-color:var(--accent)}.st-3 .cb[data-f]:after{content:"✓"}
+.areas{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 12px;width:230px}
+.area{border:1px dashed #cfd5de;border-radius:8px;min-height:62px;padding:7px}.area .lbl{margin:0 0 5px}
+.chip{font-size:11.5px;font-weight:650;background:#e3f4e8;color:#166534;border-radius:5px;padding:4px 7px;opacity:0;transform:translateY(-6px);transition:all .35s}
+.st-3 .chip{opacity:1;transform:none}.st-3 .c2{transition-delay:.25s}
+.chart{position:absolute;right:16px;top:190px;width:300px;height:190px;background:#fff;border:1px solid #e3e6ec;border-radius:10px;box-shadow:0 10px 28px rgba(30,40,60,.13);padding:12px 14px;
+  opacity:0;transform:translateY(10px) scale(.97);transition:all .4s}
+.st-4 .chart{opacity:1;transform:none}
+.ct{font-weight:700;font-size:12.5px}
+.bars{display:flex;align-items:flex-end;gap:16px;height:130px;margin-top:12px;padding:0 6px;border-bottom:1px solid #e3e6ec}
+.bars div{flex:1;background:#2f6fd8;border-radius:4px 4px 0 0;height:0;transition:height .6s cubic-bezier(.3,.8,.3,1);position:relative}
+.bars div span{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10.5px;color:#7b8395;font-weight:600}
+.tabsb{flex:none;height:30px;border-top:1px solid #e6e9ee;display:flex;align-items:center;gap:4px;padding:0 10px;font-size:12px;background:#fafbfc}
+.tabsb span{padding:4px 12px;border-radius:5px;color:#7b8395;font-weight:600}.tabsb .on{background:#fff;color:var(--accent);box-shadow:0 0 0 1px #e3e6ec}
+</style></head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="apptitle"><span class="mark"></span>Gridwise <small>— Sales 2026.grid</small></div>
+    <div class="guide">Getting started · Step <b>1</b> / <span class="tot"></span><div class="pips"></div></div>
+    <span class="sample">SAMPLE APP</span>
+  </div>
+
+  <div class="ribbon">
+    <div class="tabs"><span>File</span><span>Home</span><span class="on">Insert</span><span>Data</span><span>View</span></div>
+    <div class="rb">
+      <div class="rbtn" id="pivotBtn"><span class="ri">▦</span>PivotTable</div>
+      <div class="rbtn"><span class="ri g"></span><span class="bar " style="width:40px"></span></div>
+      <div class="sep"></div>
+      <div class="rbtn" id="chartBtn"><span class="ri c">▮▮</span>Chart</div>
+      <div class="rbtn"><span class="ri g"></span><span class="bar " style="width:36px"></span></div>
+      <div class="rbtn"><span class="ri g"></span><span class="bar " style="width:44px"></span></div>
+    </div>
+  </div>
+  <div class="fbar"><span class="nb" id="nameBox"><span class="v0">A1</span><span class="v1">A1:D13</span></span><span class="fx">fx</span><span class="v0">Region</span><span class="v1">Region</span></div>
+  <div class="main">
+    <div class="sheet"><table id="tbl"></table>
+      <div class="chart" id="chart"><div class="ct">Sum of Sales by Region</div><div class="bars" id="cbars"></div></div>
+    </div>
+    <aside class="fields" id="fields">
+      <div class="fh"><b>PivotTable Fields</b><span class="bar " style="width:30px"></span></div>
+      <div class="fl"><label><i class="cb" data-f="Region"></i>Region</label><label><i class="cb"></i>Product</label><label><i class="cb"></i>Month</label><label><i class="cb" data-f="Sales"></i>Sales</label></div>
+      <div class="areas">
+        <div class="area"><div class="lbl">Rows</div><div class="chip c1">Region</div></div>
+        <div class="area"><div class="lbl">Values</div><div class="chip c2">Sum of Sales</div></div>
+        <div class="area"><div class="lbl">Filters</div></div>
+        <div class="area"><div class="lbl">Columns</div></div>
+      </div>
+    </aside>
+  </div>
+  <div class="tabsb"><span class="on">Sales 2026</span><span><span class="bar " style="width:40px"></span></span><span>+</span></div>
+
+</div>
+<script>
+
+const STEPS=[
+ {target:'#dataRange',side:'bottom',title:'Select your data',text:'Drag across A1 to D13.'},
+ {target:'#pivotBtn',side:'bottom',title:'Insert a PivotTable',text:'Find it under the Insert tab.'},
+ {target:'#fields',side:'left',title:'Drag fields into place',text:'Region to Rows, Sales to Values.'},
+ {target:'#chartBtn',side:'bottom',title:'Turn it into a chart',text:'One click from the pivot.'},
+];
+const DONE={target:'#chart',side:'left',title:'Your report is ready',text:'Sales by region, at a glance.',noRing:true};
+
+document.querySelector('.tot').textContent = STEPS.length;
+
+const R=['North','South','East','West'],P=['Basic','Pro'],M=['Jan','Feb','Mar'];
+const data=[];let seed=7;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280};
+for(let i=0;i<12;i++)data.push([R[i%4],P[(i>>2)%2],M[Math.floor(i/4)],Math.round(800+rnd()*3200)]);
+const sums={};data.forEach(d=>sums[d[0]]=(sums[d[0]]||0)+d[3]);
+const pv=[['Row Labels','Sum of Sales'],...R.map(r=>[r,sums[r]]),['Grand Total',Object.values(sums).reduce((a,b)=>a+b,0)]];
+const cols='ABCDEFGH'.split('');const W=[92,84,74,84,24,104,104,70];
+let h='<colgroup><col style="width:36px">'+W.map(w=>`<col style="width:${w}px">`).join('')+'</colgroup><tr><th class="rh"></th>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+const fmt=n=>n.toLocaleString('en-US');
+for(let r=0;r<20;r++){
+  h+=`<tr><th class="rh">${r+1}</th>`;
+  for(let c=0;c<8;c++){
+    let v='',cls=[];
+    if(c<4&&r<=12){cls.push('sel');if(r===0)cls.push('top','hd');if(r===12)cls.push('bot');if(c===0)cls.push('l');if(c===3)cls.push('r');
+      v=r===0?['Region','Product','Month','Sales'][c]:(c===3?fmt(data[r-1][3]):data[r-1][c]);if(c===3&&r>0)cls.push('num');}
+    if((c===5||c===6)&&r>=1&&r<=pv.length){const p=pv[r-1];cls.push('pv');if(r===1)cls.push('hd');if(r===pv.length)cls.push('tot');
+      v=c===5?p[0]:(typeof p[1]==='number'?fmt(p[1]):p[1]);if(c===6&&r>1)cls.push('num');}
+    h+=`<td class="${cls.join(' ')}">${v}</td>`;
+  }
+  h+='</tr>';
+}
+document.getElementById('tbl').innerHTML=h;
+// 給第一步一個可以圈的範圍（A1:D13）
+const first=document.querySelector('#tbl tr:nth-child(2) td'),last=document.querySelector('#tbl tr:nth-child(14) td:nth-child(5)');
+const box=document.createElement('div');box.id='dataRange';box.style.cssText='position:absolute;pointer-events:none';document.querySelector('.sheet').appendChild(box);
+function sizeBox(){const s=document.querySelector('.sheet').getBoundingClientRect(),a=first.getBoundingClientRect(),b=last.getBoundingClientRect();
+  Object.assign(box.style,{left:a.left-s.left+'px',top:a.top-s.top+'px',width:b.right-a.left+'px',height:b.bottom-a.top+'px'});}
+sizeBox();window.addEventListener('resize',sizeBox);
+document.querySelector('.sheet').addEventListener('click',e=>{if(cur===0&&e.target.closest('td.sel'))next();});
+const max=Math.max(...Object.values(sums));
+document.getElementById('cbars').innerHTML=R.map(r=>`<div data-h="${Math.round(sums[r]/max*100)}"><span>${r}</span></div>`).join('');
+function onStep(i){document.querySelectorAll('#cbars div').forEach((b,k)=>{b.style.height=i>=4?b.dataset.h+'%':'0';b.style.transitionDelay=(k*0.08)+'s'});}
+
+
+const total = STEPS.length;
+let cur = 0;
+const ring = document.createElement('div'); ring.className='ring'; document.body.appendChild(ring);
+const call = document.createElement('div'); call.className='callout'; document.body.appendChild(call);
+const pips = document.querySelector('.pips');
+const stepNo = document.querySelector('.guide b');
+pips.innerHTML = STEPS.map(()=>'<i></i>').join('');
+
+function apply(){
+  for(let k=1;k<=total;k++) document.body.classList.toggle('st-'+k, k<=cur);
+  [...pips.children].forEach((p,k)=>p.classList.toggle('on',k<cur));
+  stepNo.textContent = Math.min(cur+1,total);
+  if (typeof onStep==='function') onStep(cur);
+  setTimeout(place, 60); setTimeout(place, 450); setTimeout(place, 800);
+}
+function place(){
+  let s, el, num, kicker;
+  if (cur < total){ s=STEPS[cur]; num=cur+1; kicker='Step '+num+' of '+total; }
+  else { s=DONE; num='✓'; kicker='All done'; }
+  el = document.querySelector(s.target);
+  if(!el){ return; }
+  const r = el.getBoundingClientRect(), pad=6;
+  Object.assign(ring.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px',
+    opacity: s.noRing?0:1});
+  call.innerHTML = `<div class="k"><span class="n">${num}</span>${kicker}</div><div class="t">${s.title}</div>${s.text?`<div class="d">${s.text}</div>`:''}`;
+  const cw = 236, ch = call.offsetHeight, gap = 16;
+  let x, y; const side = s.side||'right';
+  if(side==='right'){x=r.right+gap+pad;y=r.top+r.height/2-ch/2}
+  if(side==='left'){x=r.left-gap-pad-cw;y=r.top+r.height/2-ch/2}
+  if(side==='bottom'){x=r.left+r.width/2-cw/2;y=r.bottom+gap+pad}
+  if(side==='top'){x=r.left+r.width/2-cw/2;y=r.top-gap-pad-ch}
+  const w = document.querySelector('.win').getBoundingClientRect();
+  x=Math.max(w.left+8,Math.min(x,w.right-cw-8)); y=Math.max(w.top+48,Math.min(y,w.bottom-ch-8));
+  call.style.left=x+'px'; call.style.top=y+'px';
+}
+function next(){ if(cur<total){cur++;apply();} }
+function prev(){ if(cur>0){cur--;apply();} }
+document.addEventListener('keydown',e=>{
+  if(e.target.isContentEditable||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==='arrowright'||k===' '){e.preventDefault();next();}
+  else if(k==='arrowleft')prev();
+  else if(k==='r'){cur=0;apply();}
+  else if(k==='h')document.body.classList.toggle('nohints');
+  else if(k==='s')document.body.classList.toggle('nosample');
+  else if(k==='f'){document.body.classList.toggle('full');setTimeout(place,50);}
+  else if(k==='?'||k==='/')help.classList.toggle('hide');
+});
+// 直接點被圈起來的地方也會前進（錄影時看起來就像真的在操作）
+document.addEventListener('click',e=>{
+  if(cur>=total)return;
+  const t=document.querySelector(STEPS[cur].target);
+  if(t&&t.contains(e.target))next();
+});
+window.addEventListener('resize',place);
+const help=document.createElement('div');help.className='help';
+help.innerHTML='<kbd>→</kbd> next · <kbd>←</kbd> back · click the highlighted spot · <kbd>R</kbd> reset · <kbd>H</kbd> hints · <kbd>S</kbd> sample tag · <kbd>F</kbd> width · <kbd>?</kbd> this help';
+document.body.appendChild(help);setTimeout(()=>help.classList.add('hide'),5000);
+apply();
+
+</script>
+</body></html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Layerly — sample app</title>
+<style>:root{--accent:#6c5cf5}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#dde1e8;font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;color:#2b3242;overflow:hidden;-webkit-font-smoothing:antialiased}
+:root{--win-w:min(1040px,calc(100vw - 440px));--win-h:min(640px,calc(100vh - 140px))}
+body.full{--win-w:calc(100vw - 56px)}
+.win{position:fixed;left:28px;top:50%;transform:translateY(-50%);width:var(--win-w);height:var(--win-h);background:#fff;border-radius:12px;
+  box-shadow:0 24px 60px rgba(25,35,60,.16),0 0 0 1px rgba(20,30,50,.07);display:flex;flex-direction:column;overflow:hidden}
+.titlebar{height:40px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #eceef2;background:#f7f8fa}
+.dots{display:flex;gap:7px}.dots i{width:11px;height:11px;border-radius:50%;background:#d6d9df;display:block}
+.apptitle{font-weight:650;color:#4a5265;display:flex;align-items:center;gap:8px}
+.mark{width:18px;height:18px;border-radius:5px;background:var(--accent);opacity:.9}
+.apptitle small{font-weight:500;color:#9aa2b1}
+.guide{margin-left:auto;display:flex;align-items:center;gap:8px;color:#6b7385;font-size:12px;font-weight:600}
+.guide b{color:var(--accent)}
+.pips{display:flex;gap:4px}.pips i{width:16px;height:4px;border-radius:2px;background:#dfe2e8;display:block;transition:background .3s}
+.pips i.on{background:var(--accent)}
+.sample{font-size:10px;letter-spacing:.09em;font-weight:700;color:#8a93a3;border:1px dashed #b7bfcb;border-radius:999px;padding:2px 8px}
+body.nosample .sample{display:none}
+.bar{display:inline-block;height:7px;border-radius:4px;background:#e2e5ea;vertical-align:middle}
+.bar.d{background:#cfd4dc}
+.btn{border:1px solid #dde1e7;background:#fff;border-radius:7px;padding:6px 11px;font:600 12px/1 inherit;font-family:inherit;color:#3a4254;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#98a0ae}
+/* guide overlay */
+.ring{position:fixed;border:2px solid var(--accent);border-radius:10px;pointer-events:none;transition:all .35s cubic-bezier(.3,.7,.3,1);z-index:50;
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 20%,transparent);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 8%,transparent)}}
+.callout{position:fixed;width:236px;background:#1e2331;color:#fff;border-radius:12px;padding:12px 14px 13px;z-index:51;pointer-events:none;
+  box-shadow:0 12px 30px rgba(10,15,30,.28);transition:left .35s cubic-bezier(.3,.7,.3,1),top .35s cubic-bezier(.3,.7,.3,1),opacity .2s}
+.callout .k{display:flex;align-items:center;gap:7px;font-size:11px;color:#a9b2c4;font-weight:600;letter-spacing:.04em}
+.callout .n{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+.callout .t{font-size:15px;font-weight:700;margin-top:6px;line-height:1.25}
+.callout .d{font-size:12px;color:#c3cad8;margin-top:3px}
+body.nohints .ring,body.nohints .callout{opacity:0!important}
+.help{position:fixed;left:28px;bottom:14px;font-size:11.5px;color:#7d8596;background:rgba(255,255,255,.75);padding:5px 10px;border-radius:7px;transition:opacity .5s;z-index:60}
+.help.hide{opacity:0}
+.help kbd{font:600 10.5px ui-monospace,Menlo,monospace;background:#fff;border:1px solid #d7dbe2;border-radius:4px;padding:0 4px}
+.toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,20px);opacity:0;background:#1e2331;color:#fff;border-radius:9px;padding:9px 14px;font-weight:600;
+  display:flex;gap:8px;align-items:center;transition:all .35s;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast .ok{width:18px;height:18px;border-radius:50%;background:#22c55e;display:grid;place-items:center;font-size:11px}
+
+.tools{height:44px;flex:none;display:flex;align-items:center;gap:4px;padding:0 12px;border-bottom:1px solid #eceef2}
+.tl{width:30px;height:30px;border-radius:7px;display:grid;place-items:center}.tl.on{background:#efedff}
+.tl svg{width:16px;height:16px;fill:none;stroke:#5b6273;stroke-width:1.5;stroke-linejoin:round}.tl.on svg{stroke:var(--accent);fill:var(--accent)}
+.zoom{margin:0 12px 0 10px;color:#7b8395;font-weight:600}
+.main{flex:1;display:flex;min-height:0}
+.layers{width:200px;flex:none;border-right:1px solid #eceef2;padding:14px 10px;background:#fbfbfd}
+.lrow{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:6px;margin-top:2px;font-size:12.5px}
+.lrow.in{padding-left:22px}.lrow b{font-weight:600}
+.ic{width:12px;height:12px;border-radius:3px;border:1.5px solid #b9c0cc}.ic.f{border-color:#8f97a6}.ic.r{border-color:#8f97a6}
+.ic.img{background:#e6e9ee}.ic.t{border:0;font-size:11px;font-weight:700;color:#9aa2b1;display:grid;place-items:center}
+.lbl{margin:2px 8px 6px}
+.canvas{flex:1;position:relative;overflow:hidden;background:#eef0f4;background-image:radial-gradient(#d9dde4 1px,transparent 1px);background-size:18px 18px;display:grid;place-items:center;min-width:0}
+.artwrap{width:min(440px,90%)}.artlabel{font-size:11.5px;color:#8a92a2;font-weight:600;margin-bottom:6px}
+.art{width:100%;height:300px;background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(30,40,60,.08);padding:16px 22px}
+.nav{display:flex;align-items:center;gap:10px;margin-bottom:34px}
+.hero{display:flex;gap:22px}.copy{display:flex;flex-direction:column;gap:9px;flex:1}
+.pic{width:30%;flex:none;height:170px;border-radius:10px;background:linear-gradient(160deg,#eceff4,#dfe3ea)}
+#btn{position:relative;margin-top:14px;width:148px;height:44px;background:#c9ced8;color:#fff;font-weight:700;display:grid;place-items:center;font-size:13.5px;transition:all .45s;border-radius:0;outline:0 solid var(--accent);outline-offset:3px}
+#btn .h{position:absolute;width:7px;height:7px;background:#fff;border:1.5px solid var(--accent);opacity:0}
+#btn .a{left:-7px;top:-7px}#btn .b{right:-7px;top:-7px}#btn .c{left:-7px;bottom:-7px}#btn .e{right:-7px;bottom:-7px}
+.props{width:230px;flex:none;border-left:1px solid #eceef2;overflow:hidden}
+.sec{padding:12px 14px;border-bottom:1px solid #eceef2;display:flex;flex-direction:column;gap:8px}
+.sec .lbl{margin:0}
+.grid2{display:flex;gap:8px}
+.fld{flex:1;background:#f4f5f8;border-radius:6px;height:28px;display:flex;align-items:center;gap:8px;padding:0 9px;color:#8a92a2;font-weight:600}
+.fld b{color:#2b3242}.fld.wide{flex:none}.fld svg{width:13px;height:13px;fill:none;stroke:#8a92a2;stroke-width:1.6}
+.fill{background:#f4f5f8;border-radius:6px;height:30px;display:flex;align-items:center;gap:8px;padding:0 8px;font-weight:600;color:#4b5366}
+.sw{width:18px;height:18px;border-radius:4px;background:#c9ced8;transition:background .4s}
+.v1{display:none}
+#addGrad{align-self:flex-start}#exportBtn{justify-content:center;padding:9px}
+/* states */
+.st-1 #btn{outline-width:1.5px}.st-1 #btn .h{opacity:1}
+.st-1 #layerBtn{background:#efedff;color:var(--accent)}.st-1 #layerBtn .ic{border-color:var(--accent)}
+.st-2 #btn{background:linear-gradient(120deg,#7b6cff,#e46bd0 60%,#ff9a76)}
+.st-2 .sw{background:linear-gradient(120deg,#7b6cff,#e46bd0 60%,#ff9a76)}
+.st-2 .fill .v0{display:none}.st-2 .fill .v1{display:inline}
+.st-3 #btn{border-radius:22px}.st-3 #radius .v0{display:none}.st-3 #radius .v1{display:inline}
+.st-4 .toast{opacity:1;transform:translate(-50%,0)}
+.st-4 #exportBtn{filter:brightness(.92)}
+</style></head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="apptitle"><span class="mark"></span>Layerly <small>— Landing page</small></div>
+    <div class="guide">Getting started · Step <b>1</b> / <span class="tot"></span><div class="pips"></div></div>
+    <span class="sample">SAMPLE APP</span>
+  </div>
+
+  <div class="tools">
+    <div class="tl on"><svg viewBox="0 0 16 16"><path d="M3 2l10 6-4.5 1L6 13.5z"/></svg></div>
+    <div class="tl"><svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/></svg></div>
+    <div class="tl"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></svg></div>
+    <div class="tl"><svg viewBox="0 0 16 16"><path d="M3 3h10M8 3v10"/></svg></div>
+    <div class="tl"><svg viewBox="0 0 16 16"><path d="M2.5 13.5c3-1 4-9 11-11"/></svg></div>
+    <div style="flex:1"></div>
+    <span class="bar " style="width:60px"></span><span class="zoom">100%</span>
+    <button class="btn">Share</button>
+  </div>
+  <div class="main">
+    <aside class="layers">
+      <div class="lbl">Layers</div>
+      <div class="lrow frame"><span class="ic f"></span><b>Landing</b></div>
+      <div class="lrow in"><span class="ic"></span><span class="bar " style="width:70px"></span></div>
+      <div class="lrow in"><span class="ic img"></span><span class="bar " style="width:84px"></span></div>
+      <div class="lrow in"><span class="ic t">T</span><span class="bar " style="width:96px"></span></div>
+      <div class="lrow in"><span class="ic t">T</span><span class="bar " style="width:64px"></span></div>
+      <div class="lrow in" id="layerBtn"><span class="ic r"></span><b>Button</b></div>
+      <div class="lrow in"><span class="ic"></span><span class="bar " style="width:58px"></span></div>
+      <div class="lbl" style="margin-top:18px">Assets</div>
+      <div class="lrow"><span class="bar " style="width:90px"></span></div><div class="lrow"><span class="bar " style="width:72px"></span></div>
+    </aside>
+    <section class="canvas">
+      <div class="artwrap"><div class="artlabel">Landing</div>
+      <div class="art">
+        <div class="nav"><span class="bar d" style="width:46px"></span><span style="flex:1"></span><span class="bar " style="width:30px"></span><span class="bar " style="width:34px"></span><span class="bar " style="width:30px"></span></div>
+        <div class="hero">
+          <div class="copy">
+            <span class="bar d" style="width:220px;height:16px"></span>
+            <span class="bar d" style="width:170px;height:16px"></span>
+            <span class="bar" style="width:200px"></span><span class="bar" style="width:180px"></span>
+            <div id="btn"><span>Get started</span><i class="h a"></i><i class="h b"></i><i class="h c"></i><i class="h e"></i></div>
+          </div>
+          <div class="pic"></div>
+        </div>
+      </div></div>
+    </section>
+    <aside class="props">
+      <div class="sec"><div class="lbl">Button</div>
+        <div class="grid2"><div class="fld">W <b>148</b></div><div class="fld">H <b>44</b></div></div></div>
+      <div class="sec"><div class="lbl">Corner radius</div>
+        <div class="fld wide" id="radius"><svg viewBox="0 0 16 16"><path d="M3 13V8a5 5 0 015-5h5"/></svg><b class="v0">0</b><b class="v1">22</b></div></div>
+      <div class="sec"><div class="lbl">Fill</div>
+        <div class="fill"><span class="sw"></span><span class="v0">C9CED8</span><span class="v1">Linear</span><span style="flex:1"></span>100%</div>
+        <button class="btn" id="addGrad">+ Gradient</button></div>
+      <div class="sec"><div class="lbl">Effects</div><span class="bar " style="width:120px"></span><br><span class="bar " style="width:90px"></span></div>
+      <div class="sec" style="border:0"><div class="lbl">Export</div>
+        <div class="fill"><span>2x</span><span style="flex:1"></span>PNG</div>
+        <button class="btn primary" id="exportBtn">Export Button</button></div>
+    </aside>
+  </div>
+  <div class="toast"><span class="ok">✓</span>button@2x.png exported</div>
+
+</div>
+<script>
+
+const STEPS=[
+ {target:'#btn',side:'right',title:'Select the button',text:'Click the layer on the canvas.'},
+ {target:'#addGrad',side:'left',title:'Add a gradient fill',text:'Replace the flat color.'},
+ {target:'#radius',side:'left',title:'Round the corners',text:'Set the corner radius to 22.'},
+ {target:'#exportBtn',side:'left',title:'Export it',text:'PNG at 2x for the web.'},
+];
+const DONE={target:'#btn',side:'right',title:'Your button is ready',text:'Exported as button@2x.png',noRing:true};
+
+document.querySelector('.tot').textContent = STEPS.length;
+
+
+const total = STEPS.length;
+let cur = 0;
+const ring = document.createElement('div'); ring.className='ring'; document.body.appendChild(ring);
+const call = document.createElement('div'); call.className='callout'; document.body.appendChild(call);
+const pips = document.querySelector('.pips');
+const stepNo = document.querySelector('.guide b');
+pips.innerHTML = STEPS.map(()=>'<i></i>').join('');
+
+function apply(){
+  for(let k=1;k<=total;k++) document.body.classList.toggle('st-'+k, k<=cur);
+  [...pips.children].forEach((p,k)=>p.classList.toggle('on',k<cur));
+  stepNo.textContent = Math.min(cur+1,total);
+  if (typeof onStep==='function') onStep(cur);
+  setTimeout(place, 60); setTimeout(place, 450); setTimeout(place, 800);
+}
+function place(){
+  let s, el, num, kicker;
+  if (cur < total){ s=STEPS[cur]; num=cur+1; kicker='Step '+num+' of '+total; }
+  else { s=DONE; num='✓'; kicker='All done'; }
+  el = document.querySelector(s.target);
+  if(!el){ return; }
+  const r = el.getBoundingClientRect(), pad=6;
+  Object.assign(ring.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px',
+    opacity: s.noRing?0:1});
+  call.innerHTML = `<div class="k"><span class="n">${num}</span>${kicker}</div><div class="t">${s.title}</div>${s.text?`<div class="d">${s.text}</div>`:''}`;
+  const cw = 236, ch = call.offsetHeight, gap = 16;
+  let x, y; const side = s.side||'right';
+  if(side==='right'){x=r.right+gap+pad;y=r.top+r.height/2-ch/2}
+  if(side==='left'){x=r.left-gap-pad-cw;y=r.top+r.height/2-ch/2}
+  if(side==='bottom'){x=r.left+r.width/2-cw/2;y=r.bottom+gap+pad}
+  if(side==='top'){x=r.left+r.width/2-cw/2;y=r.top-gap-pad-ch}
+  const w = document.querySelector('.win').getBoundingClientRect();
+  x=Math.max(w.left+8,Math.min(x,w.right-cw-8)); y=Math.max(w.top+48,Math.min(y,w.bottom-ch-8));
+  call.style.left=x+'px'; call.style.top=y+'px';
+}
+function next(){ if(cur<total){cur++;apply();} }
+function prev(){ if(cur>0){cur--;apply();} }
+document.addEventListener('keydown',e=>{
+  if(e.target.isContentEditable||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==='arrowright'||k===' '){e.preventDefault();next();}
+  else if(k==='arrowleft')prev();
+  else if(k==='r'){cur=0;apply();}
+  else if(k==='h')document.body.classList.toggle('nohints');
+  else if(k==='s')document.body.classList.toggle('nosample');
+  else if(k==='f'){document.body.classList.toggle('full');setTimeout(place,50);}
+  else if(k==='?'||k==='/')help.classList.toggle('hide');
+});
+// 直接點被圈起來的地方也會前進（錄影時看起來就像真的在操作）
+document.addEventListener('click',e=>{
+  if(cur>=total)return;
+  const t=document.querySelector(STEPS[cur].target);
+  if(t&&t.contains(e.target))next();
+});
+window.addEventListener('resize',place);
+const help=document.createElement('div');help.className='help';
+help.innerHTML='<kbd>→</kbd> next · <kbd>←</kbd> back · click the highlighted spot · <kbd>R</kbd> reset · <kbd>H</kbd> hints · <kbd>S</kbd> sample tag · <kbd>F</kbd> width · <kbd>?</kbd> this help';
+document.body.appendChild(help);setTimeout(()=>help.classList.add('hide'),5000);
+apply();
+
+</script>
+</body></html>
