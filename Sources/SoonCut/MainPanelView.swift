@@ -123,6 +123,8 @@ struct MainPanelView: View {
             .buttonStyle(.borderless)
             .help(store.pinned ? "已固定在最上層（按一下取消，視窗可以被其他視窗蓋住）" : "沒有固定（按一下固定在最上層）")
 
+            LanguageMenu()
+
             Button {
                 store.showOnboarding?()
             } label: {
@@ -599,6 +601,80 @@ struct PreviewHeader: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             Spacer()
+        }
+    }
+}
+
+// MARK: - 介面語言
+
+/// 介面語言切換：寫入這個 app 自己的 AppleLanguages，重新開啟後生效。
+/// 「跟隨系統」＝移除設定，回到「系統設定 › 一般 › 語言與地區」的選擇。
+struct LanguageMenu: View {
+    private static let key = "AppleLanguages"
+
+    private var current: String? {
+        // 只看這個 app 自己 domain 的設定，不看全域
+        (UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?[Self.key] as? [String])?.first
+    }
+
+    var body: some View {
+        Menu {
+            option("跟隨系統", code: nil)
+            Divider()
+            option("繁體中文", code: "zh-Hant")
+            option("English", code: "en")
+        } label: {
+            Image(systemName: "globe")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("介面語言")
+    }
+
+    private func option(_ title: LocalizedStringKey, code: String?) -> some View {
+        Button {
+            choose(code)
+        } label: {
+            if current == code {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
+        }
+    }
+
+    private func choose(_ code: String?) {
+        guard code != current else { return }
+        if let code {
+            UserDefaults.standard.set([code], forKey: Self.key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.key)
+        }
+        UserDefaults.standard.synchronize()
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "重新開啟 Soon-Cut 後套用新語言")
+        alert.informativeText = String(localized: "錄影中的工作請先存好。")
+        alert.addButton(withTitle: String(localized: "立即重新開啟"))
+        alert.addButton(withTitle: String(localized: "稍後"))
+        if alert.runModal() == .alertFirstButtonReturn {
+            Self.relaunch()
+        }
+    }
+
+    /// 沙盒裡不能跑 shell，所以用 NSWorkspace 開一個新的 instance，
+    /// 帶上 relaunch 參數讓它略過「只允許一個 SoonCut」的檢查，然後自己結束。
+    static let relaunchArgument = "--soon-cut-relaunch"
+
+    static func relaunch() {
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        config.arguments = [relaunchArgument]
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { _, error in
+            DispatchQueue.main.async {
+                if error == nil { NSApp.terminate(nil) }
+            }
         }
     }
 }

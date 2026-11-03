@@ -22,7 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 同時只允許一個 SoonCut：已經有一個在跑就切過去，自己結束
-        if let id = Bundle.main.bundleIdentifier {
+        // 從語言切換重新開啟時，舊的那個正在結束，不要被擋下來
+        let isRelaunch = CommandLine.arguments.contains(LanguageMenu.relaunchArgument)
+        if !isRelaunch, let id = Bundle.main.bundleIdentifier {
             let others = NSRunningApplication.runningApplications(withBundleIdentifier: id)
                 .filter { $0 != NSRunningApplication.current }
             if let existing = others.first {

@@ -379,6 +379,16 @@
         }
       }
     },
+    "介面語言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface Language"
+          }
+        }
+      }
+    },
     "仍要套用": {
       "localizations": {
         "en": {
@@ -1947,6 +1957,16 @@
         }
       }
     },
+    "稍後": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        }
+      }
+    },
     "稍後再說": {
       "localizations": {
         "en": {
@@ -1959,6 +1979,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "稍後再說"
+          }
+        }
+      }
+    },
+    "立即重新開啟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart Now"
           }
         }
       }
@@ -2263,6 +2293,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "跟語音不同時，用 macOS 內建翻譯在本機翻譯。切換會重新產生字幕，手動修改會被覆蓋"
+          }
+        }
+      }
+    },
+    "跟隨系統": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use System Language"
           }
         }
       }
@@ -2603,6 +2643,16 @@
         }
       }
     },
+    "重新開啟 Soon-Cut 後套用新語言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart Soon-Cut to apply the new language"
+          }
+        }
+      }
+    },
     "錄好片段後會在這裡預覽與剪輯": {
       "localizations": {
         "en": {
@@ -2647,6 +2697,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "錄影"
+          }
+        }
+      }
+    },
+    "錄影中的工作請先存好。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please finish any recording in progress first."
           }
         }
       }
