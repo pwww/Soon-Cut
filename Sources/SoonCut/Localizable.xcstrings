@@ -188,6 +188,16 @@
     "Soon-Cut %@" : {
       "shouldTranslate" : false
     },
+    "✋ 可直接拖曳上傳網頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✋ Drag straight into a web upload box"
+          }
+        }
+      }
+    },
     "一次付費，永久有效" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -922,6 +932,7 @@
       }
     },
     "在「字幕」分頁按「輸出影片」，影片會出現在這裡" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1556,6 +1567,7 @@
       }
     },
     "按「輸出影片」後，到「輸出」分頁把影片卡片直接拖進 Threads 等網頁的上傳框就完成了。發完可以標記「已上傳」，舊影片可以封存。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2676,6 +2688,7 @@
       }
     },
     "輸出影片" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2937,6 +2950,7 @@
       }
     },
     "重新轉寫會覆蓋目前的字幕修改" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
