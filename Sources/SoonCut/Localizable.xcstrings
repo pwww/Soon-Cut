@@ -188,16 +188,6 @@
     "Soon-Cut %@" : {
       "shouldTranslate" : false
     },
-    "🤏 可直接拖曳上傳網頁" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🤏 Drag straight into a web upload box"
-          }
-        }
-      }
-    },
     "一次付費，永久有效" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3287,6 +3277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "，約剩 %lld 分鐘"
+          }
+        }
+      }
+    },
+    "🤏可直接拖曳來上傳到網頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🤏 Drag straight into a web upload box"
           }
         }
       }

@@ -482,6 +482,7 @@ struct OutputView: View {
 
 struct ExportRow: View {
     @EnvironmentObject var store: AppStore
+    @Environment(\.colorScheme) private var colorScheme
     let item: ExportItem
     var isSelected = false
     @State private var thumb: NSImage?
@@ -511,9 +512,12 @@ struct ExportRow: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                Text("🤏 可直接拖曳上傳網頁")
+                Text("🤏可直接拖曳來上傳到網頁")
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(Color.accentColor)
+                    // 深色模式用淺藍、淺色模式用深藍，兩邊都有足夠對比
+                    .foregroundStyle(colorScheme == .dark
+                                     ? Color(red: 0.58, green: 0.80, blue: 1.0)
+                                     : Color(red: 0.0, green: 0.36, blue: 0.78))
                     .padding(.top, 1)
             }
 
