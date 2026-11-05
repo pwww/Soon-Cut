@@ -8,7 +8,7 @@ final class FloatingPanel: NSPanel {
 
     init<Content: View>(rootView: Content) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 760),   // 左片段欄＋右預覽並排
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 780)
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false

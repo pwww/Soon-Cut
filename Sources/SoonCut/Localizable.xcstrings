@@ -189,6 +189,7 @@
       "shouldTranslate" : false
     },
     "一次付費，永久有效" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -205,6 +206,7 @@
       }
     },
     "一次買斷，不是訂閱，不會自動續訂。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -555,6 +557,7 @@
       }
     },
     "免費版功能完整——錄影、字幕、剪輯、各種比例的輸出都沒有限制，只有輸出的影片右下角會有一個小小的「SoonCut」。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -566,6 +569,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "免費版功能完整——錄影、字幕、剪輯、各種比例的輸出都沒有限制，只有輸出的影片右下角會有一個小小的「SoonCut」。"
+          }
+        }
+      }
+    },
+    "全片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
           }
         }
       }
@@ -639,7 +652,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Edit"
+            "value" : "Trim"
           }
         },
         "zh-Hant" : {
@@ -779,6 +792,7 @@
       }
     },
     "同一個 Apple 帳號的其他 Mac 也能用" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -811,6 +825,7 @@
       }
     },
     "含浮水印" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -843,6 +858,7 @@
       }
     },
     "回復購買" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1137,6 +1153,7 @@
       }
     },
     "已移除浮水印" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1169,6 +1186,7 @@
       }
     },
     "影片與語音一樣只在你的 Mac 上處理" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1201,6 +1219,7 @@
       }
     },
     "往下拖＝暫存，不放進這次輸出" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1265,6 +1284,7 @@
       }
     },
     "感謝支持。輸出的影片不會再有浮水印。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1297,6 +1317,7 @@
       }
     },
     "找不到可以回復的購買紀錄。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1344,7 +1365,18 @@
         }
       }
     },
+    "把所有預排片段接起來預覽、上字幕、輸出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join all clips to preview, caption and export"
+          }
+        }
+      }
+    },
     "把暫存區的片段往上拖回來" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1398,6 +1430,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "把要用的片段放在「剪輯片段」，這裡會接起來上字幕、輸出"
+          }
+        }
+      }
+    },
+    "把要用的片段放在「錄製」分頁的「預排片段」，這裡會接起來上字幕、輸出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put the clips you want under Clips in this edit on the Record tab; they're joined here for captions and export"
           }
         }
       }
@@ -1599,6 +1641,7 @@
       }
     },
     "暫時無法取得商品資訊，請確認網路後再試。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1727,6 +1770,7 @@
       }
     },
     "沒有暫存的片段" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2071,6 +2115,7 @@
       }
     },
     "移除浮水印" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2087,6 +2132,7 @@
       }
     },
     "移除浮水印…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2113,6 +2159,7 @@
       }
     },
     "稍後再說" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2214,6 +2261,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "約 %@，只需要下載一次。一般網路約 5 分鐘，咖啡廳等較慢的網路可能要 15–20 分鐘，可以先去做別的事。"
+          }
+        }
+      }
+    },
+    "編輯" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
           }
         }
       }
@@ -2363,6 +2420,7 @@
       }
     },
     "買斷" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2379,6 +2437,7 @@
       }
     },
     "買斷 %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2581,6 +2640,7 @@
       }
     },
     "輸出的影片不再有浮水印" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2597,6 +2657,7 @@
       }
     },
     "輸出的影片右下角會有小浮水印，一次買斷即可移除" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2677,6 +2738,7 @@
       }
     },
     "這筆購買無法驗證。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2752,6 +2814,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "還原"
+          }
+        }
+      }
+    },
+    "還沒有預排片段，到「錄製」分頁錄一段或匯入影片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No clips yet — record or import one on the Record tab"
           }
         }
       }
@@ -2835,6 +2907,7 @@
       }
     },
     "錄完或匯入的片段會出現在這裡（也可以把影片拖進來）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2872,6 +2945,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please finish any recording in progress first."
+          }
+        }
+      }
+    },
+    "錄製" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record"
           }
         }
       }
@@ -2940,12 +3023,32 @@
         }
       }
     },
+    "預排片段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clips in this edit"
+          }
+        }
+      }
+    },
     "預覽" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preview"
+          }
+        }
+      }
+    },
+    "預覽與剪輯這一段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview and trim this clip"
           }
         }
       }
@@ -2996,7 +3099,18 @@
         }
       }
     },
+    "點上方的片段就會在這裡播放與剪輯，按「全片」看整支" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click a clip above to play and trim it, or click All to watch the whole video"
+          }
+        }
+      }
+    },
     "點上面的片段就會在這裡播放與剪輯" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

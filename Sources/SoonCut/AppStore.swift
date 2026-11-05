@@ -3,6 +3,18 @@ import AppKit
 import AVFoundation
 import Translation
 
+/// App 最上層的兩個分頁
+enum AppTab: String, CaseIterable, Identifiable {
+    case record, edit
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .record: return String(localized: "錄製")
+        case .edit: return String(localized: "編輯")
+        }
+    }
+}
+
 enum PreviewMode: String, CaseIterable, Identifiable {
     case clip = "剪輯"
     case subtitle = "字幕"
@@ -106,6 +118,9 @@ final class AppStore: ObservableObject {
         didSet { UserDefaults.standard.set(exportQuality.rawValue, forKey: "exportQuality") }
     }
     @Published private(set) var exportProgress: Double?
+    @Published var appTab: AppTab = AppTab(rawValue: UserDefaults.standard.string(forKey: "appTab") ?? "") ?? .record {
+        didSet { UserDefaults.standard.set(appTab.rawValue, forKey: "appTab") }
+    }
     /// 字幕外觀（字色、外框、大小、位置），預覽與輸出共用
     @Published var subtitleStyle: SubtitleStyle = SubtitleStyle.load() {
         didSet { subtitleStyle.save() }
