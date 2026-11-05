@@ -16,6 +16,7 @@ struct SubtitleEditor: View {
     @State private var timeObserver: Any?
     @AppStorage("subtitlePlayerFraction") private var playerFraction: Double = 0.42
     @Environment(\.previewAreaHeight) private var areaHeight
+    @State private var confirmRegenerate = false
     @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     var body: some View {
@@ -31,13 +32,14 @@ struct SubtitleEditor: View {
                              defaultHeight: areaHeight * 0.42)
             }
 
+            actionBar
+
             formatBar
             qualityBar
             platformBar
 
             languageBar
             styleBar
-            actionBar
 
             if store.subtitlesOutdated && !store.isTranscribing {
                 HStack(spacing: 8) {
@@ -228,38 +230,58 @@ struct SubtitleEditor: View {
     // MARK: 按鈕列
 
     private var actionBar: some View {
-        HStack(spacing: 8) {
-            if let status = store.subtitleStatus {
-                TranscribeStatusView(status: status)
-            } else {
-                Button {
-                    store.transcribeSequence()
-                } label: {
-                    Label(store.subtitles.isEmpty ? "產生字幕" : "重新轉寫", systemImage: "captions.bubble")
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 10) {
+                if let status = store.subtitleStatus {
+                    TranscribeStatusView(status: status)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Button {
+                        if store.subtitles.isEmpty {
+                            store.transcribeSequence()
+                        } else {
+                            confirmRegenerate = true
+                        }
+                    } label: {
+                        Label(store.subtitles.isEmpty ? "產生字幕" : "重新產生字幕", systemImage: "captions.bubble")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.isExporting)
+                    .help(store.subtitles.isEmpty ? "用本機 Whisper 轉寫字幕" : "重新產生會覆蓋目前的字幕與手動修改")
                 }
-                .disabled(store.isExporting)
-                .help(store.subtitles.isEmpty ? "用本機 Whisper 轉寫字幕" : "重新轉寫會覆蓋目前的字幕修改")
+
+                Button {
+                    store.exportVideo()
+                } label: {
+                    Group {
+                        if store.isExporting {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("輸出中 \(Int((store.exportProgress ?? 0) * 100))%")
+                                    .monospacedDigit()
+                            }
+                        } else {
+                            Label("合成字幕輸出", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.isExporting || store.isTranscribing)
             }
-            Spacer()
+            .controlSize(.large)
+
             #if APPSTORE
             // 預覽畫面此刻就有浮水印，是唯一「想移除它」的動機已經存在的時刻。
             WatermarkNoticeButton()
             #endif
-            Button {
-                store.exportVideo()
-            } label: {
-                if store.isExporting {
-                    HStack(spacing: 6) {
-                        ProgressView().controlSize(.small)
-                        Text("輸出中 \(Int((store.exportProgress ?? 0) * 100))%")
-                            .monospacedDigit()
-                    }
-                } else {
-                    Label("輸出影片", systemImage: "square.and.arrow.up")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(store.isExporting || store.isTranscribing)
+        }
+        .confirmationDialog("重新產生字幕？", isPresented: $confirmRegenerate) {
+            Button("重新產生", role: .destructive) { store.transcribeSequence() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("目前的字幕和你手動修改的內容都會被覆蓋。")
         }
     }
 
@@ -451,7 +473,7 @@ struct OutputView: View {
 
     private var emptyText: LocalizedStringKey {
         switch store.outputTab {
-        case .latest: return "在「字幕」分頁按「輸出影片」，影片會出現在這裡"
+        case .latest: return "在「字幕」分頁按「合成字幕輸出」，影片會出現在這裡"
         case .uploaded: return "上傳後把影片標記為「已上傳」"
         case .archived: return "不常用的影片可以封存在這裡"
         }

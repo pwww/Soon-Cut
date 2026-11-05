@@ -664,6 +664,7 @@
       }
     },
     "剪輯片段" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -759,6 +760,16 @@
         }
       }
     },
+    "取消" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
     "只剪了一點點、字幕時間差不多時可以沿用" : {
       "localizations" : {
         "en" : {
@@ -787,6 +798,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只能匯入 MP4、MOV、M4V 影片。"
+          }
+        }
+      }
+    },
+    "合成字幕輸出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export with captions"
           }
         }
       }
@@ -886,6 +907,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 Finder 中顯示"
+          }
+        }
+      }
+    },
+    "在「字幕」分頁按「合成字幕輸出」，影片會出現在這裡" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press Export with captions in the Captions tab and it lands here"
           }
         }
       }
@@ -1219,7 +1250,6 @@
       }
     },
     "往下拖＝暫存，不放進這次輸出" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1376,7 +1406,6 @@
       }
     },
     "把暫存區的片段往上拖回來" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1393,6 +1422,7 @@
       }
     },
     "把暫存區的片段拖回這裡" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1419,6 +1449,7 @@
       }
     },
     "把要用的片段放在「剪輯片段」，這裡會接起來上字幕、輸出" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1445,6 +1476,7 @@
       }
     },
     "拖到這裡暫存" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1455,6 +1487,7 @@
       }
     },
     "拖到這裡＝暫存，不放進這次輸出" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1492,6 +1525,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "拖曳框選錄影範圍（鎖定 9:16）· Esc 取消"
+          }
+        }
+      }
+    },
+    "按「合成字幕輸出」後，到「輸出」分頁把影片卡片直接拖進 Threads 等網頁的上傳框就完成了。發完可以標記「已上傳」，舊影片可以封存。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press Export with captions, then open the Export tab and drag the card straight into the upload box on Threads or anywhere else. Mark it Uploaded when it's posted, and archive the ones you're done with."
           }
         }
       }
@@ -1770,7 +1813,6 @@
       }
     },
     "沒有暫存的片段" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2078,6 +2120,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前沒有在錄影。"
+          }
+        }
+      }
+    },
+    "目前的字幕和你手動修改的內容都會被覆蓋。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your current captions and any edits you made will be replaced."
           }
         }
       }
@@ -2828,6 +2880,46 @@
         }
       }
     },
+    "重新產生" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate"
+          }
+        }
+      }
+    },
+    "重新產生字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate captions"
+          }
+        }
+      }
+    },
+    "重新產生字幕？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate captions?"
+          }
+        }
+      }
+    },
+    "重新產生會覆蓋目前的字幕與手動修改" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerating replaces the current captions and your edits"
+          }
+        }
+      }
+    },
     "重新轉寫" : {
       "localizations" : {
         "en" : {
@@ -2897,6 +2989,7 @@
       }
     },
     "錄完或匯入的片段會出現在這裡" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2907,7 +3000,6 @@
       }
     },
     "錄完或匯入的片段會出現在這裡（也可以把影片拖進來）" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3127,6 +3219,7 @@
       }
     },
     "點左邊的片段就會在這裡播放與剪輯" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
