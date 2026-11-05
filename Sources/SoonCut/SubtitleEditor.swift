@@ -511,7 +511,7 @@ struct ExportRow: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                Text("✋ 可直接拖曳上傳網頁")
+                Text("🤏 可直接拖曳上傳網頁")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(Color.accentColor)
                     .padding(.top, 1)

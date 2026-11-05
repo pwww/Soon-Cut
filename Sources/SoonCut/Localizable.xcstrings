@@ -188,12 +188,12 @@
     "Soon-Cut %@" : {
       "shouldTranslate" : false
     },
-    "✋ 可直接拖曳上傳網頁" : {
+    "🤏 可直接拖曳上傳網頁" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "✋ Drag straight into a web upload box"
+            "value" : "🤏 Drag straight into a web upload box"
           }
         }
       }
