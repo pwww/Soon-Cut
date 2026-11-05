@@ -7,14 +7,23 @@ struct MainPanelView: View {
     @AppStorage("clipsCollapsed") private var clipsCollapsed = false
     @AppStorage("stagingCollapsed") private var stagingCollapsed = false
     @AppStorage("tabsCollapsed") private var tabsCollapsed = false
+    @StateObject private var clipDrag = ClipDragModel()
+
+    /// 左側片段欄的寬度：縮圖寬再多一點
+    static let clipColumnWidth: CGFloat = ClipRow.mainSize.width + 22
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             toolbar
             regionInfo
             Divider()
-            clipsSection
-            previewSection
+            // 左：片段欄（窄）；右：剪輯／字幕／輸出（其餘空間）
+            HStack(alignment: .top, spacing: 12) {
+                clipsColumn
+                Divider()
+                previewSection
+            }
+            .frame(maxHeight: .infinity)
             if let msg = store.errorMessage {
                 Text(msg)
                     .font(.caption)
@@ -25,7 +34,7 @@ struct MainPanelView: View {
         .padding(.horizontal, 18)
         .padding(.top, 30)
         .padding(.bottom, 18)
-        .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(minWidth: 560, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // 按住任何空白處都能拖動視窗；縮圖、膠卷條等自己有拖曳的地方優先。
         // 自己搬視窗（不用系統的拖動），避免拖到螢幕上緣被系統貼齊卡住。
         .contentShape(Rectangle())
@@ -165,71 +174,126 @@ struct MainPanelView: View {
         }
     }
 
-    // MARK: 片段（使用中＋暫存區）
+    // MARK: 片段欄（使用中＋暫存區＋垃圾桶，直向）
 
-    private var clipsSection: some View {
+    private var clipsColumn: some View {
         let active = store.activeClips
         let staged = store.stagedClips
         let total = active.reduce(0) { $0 + $1.trimmedDuration }
 
         return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                CollapseChevron(collapsed: $clipsCollapsed)
-                Text("剪輯片段").font(.headline)
-                Text("\(active.count) 段 · \(formatTime(total))")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button {
-                    store.importVideos()
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    CollapseChevron(collapsed: $clipsCollapsed)
+                    Text("剪輯片段").font(.headline).lineLimit(2)
                 }
-                .buttonStyle(.borderless)
-                .help("匯入影片（也可以直接把影片拖進這裡）")
-                Button {
-                    store.openRawFolder()
-                } label: {
-                    Image(systemName: "folder")
-                }
-                .buttonStyle(.borderless)
-                .help("打開片段資料夾")
-            }
-
-            if !clipsCollapsed {
-                if active.isEmpty {
-                    emptyRow(staged.isEmpty ? "錄完或匯入的片段會出現在這裡（也可以把影片拖進來）" : "把暫存區的片段往上拖回來",
-                             height: ClipRow.mainSize.height)
-                } else {
-                    ClipRow(clips: active, staged: false)
+                HStack(spacing: 4) {
+                    Text("\(active.count) 段 · \(formatTime(total))")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Button {
+                        store.importVideos()
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("匯入影片（也可以直接把影片拖進這裡）")
+                    Button {
+                        store.openRawFolder()
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("打開片段資料夾")
                 }
             }
 
-            HStack {
-                CollapseChevron(collapsed: $stagingCollapsed)
-                Text("暫存區").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                Text("\(staged.count)").font(.caption).foregroundStyle(.tertiary)
-                Spacer()
-                Text("往下拖＝暫存，不放進這次輸出")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.top, 2)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Group {
+                        if !clipsCollapsed {
+                            if active.isEmpty {
+                                emptyRow(staged.isEmpty ? "錄完或匯入的片段會出現在這裡" : "把暫存區的片段拖回這裡",
+                                         height: ClipRow.mainSize.height)
+                            } else {
+                                ClipRow(clips: active, staged: false)
+                            }
+                        } else {
+                            Color.clear.frame(height: 8)
+                        }
+                    }
+                    .padding(4)
+                    .background(dropHighlight(clipDrag.target == .unstage))
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(ClipDragModel.space)) } action: {
+                        clipDrag.activeFrame = $0
+                    }
 
-            if !stagingCollapsed {
-                if staged.isEmpty {
-                    emptyRow("沒有暫存的片段", height: ClipRow.stagedSize.height)
-                } else {
-                    ClipRow(clips: staged, staged: true)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 4) {
+                            CollapseChevron(collapsed: $stagingCollapsed)
+                            Text("暫存區").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                            Text("\(staged.count)").font(.caption).foregroundStyle(.tertiary)
+                        }
+                        .help("拖到這裡＝暫存，不放進這次輸出")
+
+                        if !stagingCollapsed {
+                            if staged.isEmpty {
+                                emptyRow("拖到這裡暫存", height: ClipRow.stagedSize.height)
+                            } else {
+                                ClipRow(clips: staged, staged: true)
+                            }
+                        }
+                    }
+                    .padding(4)
+                    .background(dropHighlight(clipDrag.target == .stage))
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(ClipDragModel.space)) } action: {
+                        clipDrag.stagedFrame = $0
+                    }
                 }
+                .padding(.vertical, 2)
             }
+
+            TrashDropZone(height: 40, active: clipDrag.draggingID != nil, targeted: clipDrag.target == .trash)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(ClipDragModel.space)) } action: {
+                    clipDrag.trashFrame = $0
+                }
         }
+        .frame(width: Self.clipColumnWidth)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .coordinateSpace(name: ClipDragModel.space)
+        // 拖曳中的縮圖畫在整欄最上層，不會被捲動區裁掉
+        .overlay(alignment: .topLeading) { dragGhost }
+        .environmentObject(clipDrag)
         // 從 Finder 拖影片進來＝匯入
         .dropDestination(for: URL.self) { urls, _ in
             let videos = urls.filter { ClipStorage.videoExtensions.contains($0.pathExtension.lowercased()) }
             guard !videos.isEmpty else { return false }
             store.importFiles(videos)
             return true
+        }
+    }
+
+    private func dropHighlight(_ on: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(Color.accentColor.opacity(on ? 0.18 : 0))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.accentColor.opacity(on ? 0.7 : 0), lineWidth: 1.5))
+            .animation(.easeOut(duration: 0.12), value: on)
+    }
+
+    @ViewBuilder
+    private var dragGhost: some View {
+        if let id = clipDrag.draggingID, let clip = store.clips.first(where: { $0.id == id }) {
+            ClipThumb(clip: clip,
+                      size: clipDrag.draggingStaged ? ClipRow.stagedSize : ClipRow.mainSize,
+                      isSelected: true,
+                      hint: clipDrag.hint)
+                .scaleEffect(1.06)
+                .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                .position(clipDrag.ghostCenter)
+                .allowsHitTesting(false)
         }
     }
 
@@ -282,12 +346,14 @@ struct MainPanelView: View {
             }
 
             if !tabsCollapsed {
+            GeometryReader { geo in
+            VStack(alignment: .leading, spacing: 8) {
             switch store.previewMode {
             case .clip:
                 if let clip = store.selectedClip {
                     ClipEditor(clip: clip, isRecording: store.isRecording)
                 } else {
-                    placeholder("剪輯", store.clips.isEmpty ? "錄好片段後會在這裡預覽與剪輯" : "點上面的片段就會在這裡播放與剪輯")
+                    placeholder("剪輯", store.clips.isEmpty ? "錄好片段後會在這裡預覽與剪輯" : "點左邊的片段就會在這裡播放與剪輯")
                 }
             case .subtitle:
                 if store.activeClips.isEmpty {
@@ -297,6 +363,10 @@ struct MainPanelView: View {
                 }
             case .output:
                 OutputView()
+            }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .environment(\.previewAreaHeight, geo.size.height)
             }
             }
         }
@@ -314,113 +384,116 @@ struct MainPanelView: View {
     }
 }
 
-// MARK: - 片段列：直接拖動排序；上下拖移進／移出暫存區
+// MARK: - 片段拖曳：排序、移進／移出暫存區、丟垃圾桶
 
+enum ClipDropTarget: Equatable {
+    case trash, stage, unstage
+}
+
+/// 片段欄共用的拖曳狀態；各區塊的位置都量在同一個座標空間
+final class ClipDragModel: ObservableObject {
+    static let space = "clipColumn"
+
+    @Published var draggingID: UUID?
+    @Published var draggingStaged = false
+    @Published var ghostCenter: CGPoint = .zero
+    @Published var target: ClipDropTarget?
+
+    var trashFrame: CGRect = .zero
+    var activeFrame: CGRect = .zero
+    var stagedFrame: CGRect = .zero
+
+    var hint: String? {
+        switch target {
+        case .trash: return String(localized: "放開：丟到垃圾桶")
+        case .stage: return String(localized: "放開：移到暫存")
+        case .unstage: return String(localized: "放開：加回剪輯")
+        case nil: return nil
+        }
+    }
+
+    func dropTarget(at point: CGPoint, staged: Bool) -> ClipDropTarget? {
+        if trashFrame.insetBy(dx: -4, dy: -4).contains(point) { return .trash }
+        if !staged, stagedFrame.contains(point) { return .stage }
+        if staged, activeFrame.contains(point) { return .unstage }
+        return nil
+    }
+}
+
+/// 直向片段清單：上下拖動排序；拖到另一區＝換區；拖到垃圾桶＝丟掉
 struct ClipRow: View {
     static let mainSize = CGSize(width: 96, height: 72)
-    static let stagedSize = CGSize(width: 72, height: 54)
+    static let stagedSize = CGSize(width: 80, height: 60)
     static let spacing: CGFloat = 8
 
     @EnvironmentObject var store: AppStore
+    @EnvironmentObject var drag: ClipDragModel
     let clips: [Clip]
     let staged: Bool
 
-    @State private var draggingID: UUID?
-    @State private var dragOffset: CGSize = .zero
-    @State private var consumedX: CGFloat = 0   // 已經換過位置的水平距離
-    @State private var trashFrame: CGRect = .zero
-    @State private var overTrash = false
+    @State private var consumedY: CGFloat = 0   // 已經換過位置的垂直距離
 
     private var size: CGSize { staged ? Self.stagedSize : Self.mainSize }
-    private var step: CGFloat { size.width + Self.spacing }
-    private var switchThreshold: CGFloat { size.height * 0.75 }
+    private var step: CGFloat { size.height + Self.spacing }
 
     var body: some View {
-        HStack(spacing: 6) {
-            thumbs
-                .zIndex(1)   // 拖曳中的縮圖要蓋在垃圾桶上面
-            TrashDropZone(height: size.height, active: draggingID != nil, targeted: overTrash)
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { trashFrame = $0 }
-        }
-    }
-
-    private var thumbs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Self.spacing) {
-                ForEach(clips) { clip in
-                    let isDragging = draggingID == clip.id
-                    ClipThumb(clip: clip,
-                              size: size,
-                              isSelected: store.selectedClipID == clip.id,
-                              dimmed: staged,
-                              hint: isDragging ? dropHint : nil)
-                        .scaleEffect(isDragging ? 1.06 : 1)
-                        .shadow(color: .black.opacity(isDragging ? 0.4 : 0), radius: 8, y: 4)
-                        .offset(isDragging ? dragOffset : .zero)
-                        .zIndex(isDragging ? 1 : 0)
-                        .onTapGesture {
-                            store.selectedClipID = clip.id
-                            store.previewMode = .clip
-                        }
-                        .gesture(
-                            DragGesture(minimumDistance: 4, coordinateSpace: .global)
-                                .onChanged { v in dragChanged(clip, v) }
-                                .onEnded { v in dragEnded(clip, v) }
-                        )
-                        .contextMenu { menu(for: clip) }
-                }
+        VStack(spacing: Self.spacing) {
+            ForEach(clips) { clip in
+                ClipThumb(clip: clip,
+                          size: size,
+                          isSelected: store.selectedClipID == clip.id,
+                          dimmed: staged)
+                    .opacity(drag.draggingID == clip.id ? 0.25 : 1)
+                    .onTapGesture {
+                        store.selectedClipID = clip.id
+                        store.previewMode = .clip
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 4, coordinateSpace: .named(ClipDragModel.space))
+                            .onChanged { v in dragChanged(clip, v) }
+                            .onEnded { v in dragEnded(clip, v) }
+                    )
+                    .contextMenu { menu(for: clip) }
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 2)
         }
-        .scrollClipDisabled()   // 拖出這一列時縮圖不要被裁掉
-        .frame(height: size.height + 12)
-    }
-
-    private var dropHint: String? {
-        if overTrash { return String(localized: "放開：丟到垃圾桶") }
-        if !staged, dragOffset.height > switchThreshold { return String(localized: "放開：移到暫存") }
-        if staged, dragOffset.height < -switchThreshold { return String(localized: "放開：加回剪輯") }
-        return nil
+        .frame(maxWidth: .infinity)
     }
 
     private func dragChanged(_ clip: Clip, _ v: DragGesture.Value) {
-        if draggingID != clip.id {
-            draggingID = clip.id
-            consumedX = 0
+        if drag.draggingID != clip.id {
+            drag.draggingID = clip.id
+            drag.draggingStaged = staged
+            consumedY = 0
         }
-        dragOffset = CGSize(width: v.translation.width - consumedX, height: v.translation.height)
-        overTrash = trashFrame.insetBy(dx: -6, dy: -6).contains(v.location)
-        if overTrash { return }   // 停在垃圾桶上時不排序
-
-        // 垂直拖遠了＝要換區，不做排序
-        guard abs(v.translation.height) < switchThreshold,
+        drag.ghostCenter = v.location
+        drag.target = drag.dropTarget(at: v.location, staged: staged)
+        guard drag.target == nil,
               let current = clips.firstIndex(where: { $0.id == clip.id }) else { return }
-        let shift = Int((dragOffset.width / step).rounded())
+
+        // 在同一區裡上下拖＝排序
+        let dy = v.translation.height - consumedY
+        let shift = Int((dy / step).rounded())
         let target = min(max(current + shift, 0), clips.count - 1)
         if target != current {
             withAnimation(.easeOut(duration: 0.15)) {
                 store.moveClip(clip.id, toIndex: target)
             }
-            consumedX += CGFloat(target - current) * step
-            dragOffset.width = v.translation.width - consumedX
+            consumedY += CGFloat(target - current) * step
         }
     }
 
     private func dragEnded(_ clip: Clip, _ v: DragGesture.Value) {
-        let dropOnTrash = trashFrame.insetBy(dx: -6, dy: -6).contains(v.location)
+        let target = drag.dropTarget(at: v.location, staged: staged)
         withAnimation(.easeOut(duration: 0.18)) {
-            if dropOnTrash {
-                store.trash(clip)
-            } else if !staged, v.translation.height > switchThreshold {
-                store.setStaged(clip.id, true)
-            } else if staged, v.translation.height < -switchThreshold {
-                store.setStaged(clip.id, false)
+            switch target {
+            case .trash: store.trash(clip)
+            case .stage: store.setStaged(clip.id, true)
+            case .unstage: store.setStaged(clip.id, false)
+            case nil: break
             }
-            draggingID = nil
-            dragOffset = .zero
-            consumedX = 0
-            overTrash = false
+            drag.draggingID = nil
+            drag.target = nil
+            consumedY = 0
         }
     }
 
@@ -439,7 +512,7 @@ struct ClipRow: View {
     }
 }
 
-/// 片段列右邊的垃圾桶：把縮圖拖上來放開＝丟到垃圾桶
+/// 片段欄底部的垃圾桶：把縮圖拖上來放開＝丟到垃圾桶
 struct TrashDropZone: View {
     let height: CGFloat
     var active = false     // 正在拖曳片段
@@ -447,9 +520,10 @@ struct TrashDropZone: View {
 
     var body: some View {
         Image(systemName: targeted ? "trash.fill" : "trash")
-            .font(.system(size: 16, weight: .medium))
+            .font(.system(size: 15, weight: .medium))
             .foregroundStyle(targeted ? Color.white : (active ? Color.red : Color.secondary))
-            .frame(width: 36, height: height)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(targeted ? Color.red.opacity(0.85) : Color.secondary.opacity(active ? 0.15 : 0.08))
@@ -459,7 +533,7 @@ struct TrashDropZone: View {
                     .strokeBorder(active ? Color.red.opacity(0.6) : Color.secondary.opacity(0.25),
                                   style: StrokeStyle(lineWidth: 1, dash: active ? [] : [3, 3]))
             )
-            .scaleEffect(targeted ? 1.08 : 1)
+            .scaleEffect(targeted ? 1.05 : 1)
             .animation(.easeOut(duration: 0.12), value: targeted)
             .animation(.easeOut(duration: 0.12), value: active)
             .help("把片段拖到這裡丟到垃圾桶")

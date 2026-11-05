@@ -106,6 +106,10 @@ final class AppStore: ObservableObject {
         didSet { UserDefaults.standard.set(exportQuality.rawValue, forKey: "exportQuality") }
     }
     @Published private(set) var exportProgress: Double?
+    /// 字幕外觀（字色、外框、大小、位置），預覽與輸出共用
+    @Published var subtitleStyle: SubtitleStyle = SubtitleStyle.load() {
+        didSet { subtitleStyle.save() }
+    }
     /// 新手引導（由 AppDelegate 設定）
     var showOnboarding: (() -> Void)?
     @Published private(set) var exportStatus: String?
@@ -691,7 +695,7 @@ final class AppStore: ObservableObject {
         Task {
             do {
                 let duration = try await Exporter.export(
-                    clips: activeClips, subtitles: effectiveSubtitles,
+                    clips: activeClips, subtitles: effectiveSubtitles, style: subtitleStyle,
                     format: format, quality: quality, to: url,
                     progress: { [weak self] p in
                         Task { @MainActor in

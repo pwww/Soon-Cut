@@ -27,12 +27,13 @@ final class OverlayState: @unchecked Sendable {
 enum Renderer {
     /// 依字幕與浮水印設定，先把要疊的圖準備好（在主執行緒畫字）
     @MainActor
-    static func prepareOverlay(_ state: OverlayState, subtitles: [SubtitleSegment], canvas: CGSize, watermark: Bool) {
+    static func prepareOverlay(_ state: OverlayState, subtitles: [SubtitleSegment], style: SubtitleStyle,
+                               canvas: CGSize, watermark: Bool) {
         var items: [(start: Double, end: Double, image: CIImage)] = []
         for seg in subtitles where seg.end > seg.start {
-            guard let image = SubtitleRenderer.image(text: seg.text, canvas: canvas),
+            guard let image = SubtitleRenderer.image(text: seg.text, canvas: canvas, style: style),
                   let ci = ciImage(from: image) else { continue }
-            let frame = SubtitleRenderer.frame(imageSize: image.size, canvas: canvas)
+            let frame = SubtitleRenderer.frame(imageSize: image.size, canvas: canvas, style: style)
             items.append((seg.start, seg.end, place(ci, in: frame)))
         }
         var wm: CIImage?

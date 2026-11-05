@@ -12,7 +12,8 @@ struct ClipEditor: View {
     @State private var draftRanges: [ClipRange] = []
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
-    @AppStorage("clipPlayerHeight") private var playerHeight: Double = 260
+    @AppStorage("clipPlayerFraction") private var playerFraction: Double = 0.6
+    @Environment(\.previewAreaHeight) private var areaHeight
     @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     private var keptLength: Double { draftRanges.reduce(0) { $0 + $1.length } }
@@ -27,9 +28,10 @@ struct ClipEditor: View {
                 PlayerView(player: player)
                     .background(Color.black)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .frame(height: playerHeight)
+                    .frame(height: PreviewSizing.height(fraction: playerFraction, area: areaHeight))
 
-                ResizeHandle(height: $playerHeight, defaultHeight: 260)
+                ResizeHandle(height: PreviewSizing.binding(fraction: $playerFraction, area: areaHeight),
+                             defaultHeight: areaHeight * 0.6)
             }
 
             FilmstripTrimmer(
@@ -317,6 +319,40 @@ struct FilmstripTrimmer: View {
 // MARK: - 拖曳調整高度的把手（預覽畫面與下方清單之間）
 
 /// 上下拖動調整上方區塊高度；雙擊回到預設。高度會記住。
+// MARK: - 預覽高度：佔分頁區的比例，視窗變大變小時跟著縮放
+
+private struct PreviewAreaHeightKey: EnvironmentKey {
+    static let defaultValue: Double = 500
+}
+
+extension EnvironmentValues {
+    /// 剪輯／字幕／輸出分頁內容可用的高度
+    var previewAreaHeight: Double {
+        get { self[PreviewAreaHeightKey.self] }
+        set { self[PreviewAreaHeightKey.self] = newValue }
+    }
+}
+
+enum PreviewSizing {
+    static let minHeight: Double = 120
+    static let fractionRange: ClosedRange<Double> = 0.2...0.85
+
+    static func height(fraction: Double, area: Double) -> Double {
+        max(minHeight, area * fraction)
+    }
+
+    /// 給 ResizeHandle 用：拖的是像素高度，存的是比例
+    static func binding(fraction: Binding<Double>, area: Double) -> Binding<Double> {
+        Binding(
+            get: { height(fraction: fraction.wrappedValue, area: area) },
+            set: { newHeight in
+                let f = newHeight / max(area, 1)
+                fraction.wrappedValue = min(max(f, fractionRange.lowerBound), fractionRange.upperBound)
+            }
+        )
+    }
+}
+
 struct ResizeHandle: View {
     @Binding var height: Double
     var defaultHeight: Double

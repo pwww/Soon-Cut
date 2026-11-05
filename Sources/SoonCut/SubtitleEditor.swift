@@ -14,7 +14,8 @@ struct SubtitleEditor: View {
     @State private var duration: Double = 0
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
-    @AppStorage("subtitlePlayerHeight") private var playerHeight: Double = 220
+    @AppStorage("subtitlePlayerFraction") private var playerFraction: Double = 0.42
+    @Environment(\.previewAreaHeight) private var areaHeight
     @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     var body: some View {
@@ -24,9 +25,10 @@ struct SubtitleEditor: View {
                 PlayerView(player: player)
                     .background(Color.black)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .frame(height: playerHeight)
+                    .frame(height: PreviewSizing.height(fraction: playerFraction, area: areaHeight))
 
-                ResizeHandle(height: $playerHeight, defaultHeight: 220)
+                ResizeHandle(height: PreviewSizing.binding(fraction: $playerFraction, area: areaHeight),
+                             defaultHeight: areaHeight * 0.42)
             }
 
             formatBar
@@ -34,6 +36,7 @@ struct SubtitleEditor: View {
             platformBar
 
             languageBar
+            styleBar
             actionBar
 
             if store.subtitlesOutdated && !store.isTranscribing {
@@ -67,6 +70,7 @@ struct SubtitleEditor: View {
         }
         .onChange(of: store.subtitles) { refreshOverlay() }
         .onChange(of: store.subtitlesOutdated) { refreshOverlay() }
+        .onChange(of: store.subtitleStyle) { refreshOverlay() }
         .translationTask(store.translationConfig) { session in
             await translate(with: session)
         }
@@ -91,6 +95,51 @@ struct SubtitleEditor: View {
             }
             .help("跟語音不同時，用 macOS 內建翻譯在本機翻譯。切換會重新產生字幕，手動修改會被覆蓋")
             .disabled(store.isTranscribing)
+        }
+        .font(.caption)
+        .controlSize(.small)
+    }
+
+    // MARK: 字幕外觀
+
+    private var styleBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Picker("字色", selection: $store.subtitleStyle.textColor) {
+                    ForEach(SubtitleStyle.TextColor.allCases) { c in
+                        Text(c.label).tag(c)
+                    }
+                }
+                .fixedSize()
+
+                Picker("外框", selection: $store.subtitleStyle.outline) {
+                    ForEach(SubtitleStyle.Outline.allCases) { o in
+                        Text(o.label).tag(o)
+                    }
+                }
+                .fixedSize()
+
+                Picker("大小", selection: $store.subtitleStyle.size) {
+                    ForEach(SubtitleStyle.Size.allCases) { s in
+                        Text(s.label).tag(s)
+                    }
+                }
+                .fixedSize()
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 8) {
+                Text("位置").foregroundStyle(.secondary)
+                Image(systemName: "arrow.down.to.line").foregroundStyle(.tertiary)
+                Slider(value: $store.subtitleStyle.position, in: SubtitleStyle.positionRange)
+                    .help("字幕上下位置，一律水平置中")
+                Image(systemName: "arrow.up.to.line").foregroundStyle(.tertiary)
+                Button("重設") {
+                    store.subtitleStyle.position = SubtitleStyle.defaultPosition
+                }
+                .buttonStyle(.borderless)
+                .disabled(abs(store.subtitleStyle.position - SubtitleStyle.defaultPosition) < 0.001)
+            }
         }
         .font(.caption)
         .controlSize(.small)
@@ -258,7 +307,7 @@ struct SubtitleEditor: View {
             let newCanvas = store.outputFormat.canvas(base: result.renderSize)
             canvas = newCanvas
             duration = result.duration
-            Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, canvas: newCanvas,
+            Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, style: store.subtitleStyle, canvas: newCanvas,
                                     watermark: Licensing.showsWatermark)
             let item = AVPlayerItem(asset: result.composition)
             item.videoComposition = Renderer.videoComposition(for: result.composition, canvas: newCanvas, overlay: overlay)
@@ -276,7 +325,7 @@ struct SubtitleEditor: View {
     /// 字幕改了：更新疊圖；暫停中的畫面重畫一次
     private func refreshOverlay() {
         guard canvas.width > 0 else { return }
-        Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, canvas: canvas,
+        Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, style: store.subtitleStyle, canvas: canvas,
                                 watermark: Licensing.showsWatermark)
         if player.rate == 0 {
             player.seek(to: player.currentTime(), toleranceBefore: .zero, toleranceAfter: .zero)
@@ -341,7 +390,8 @@ struct SubtitleRow: View {
 struct OutputView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedID: String?
-    @AppStorage("outputPreviewHeight") private var previewHeight: Double = 220
+    @AppStorage("outputPreviewFraction") private var previewFraction: Double = 0.45
+    @Environment(\.previewAreaHeight) private var areaHeight
     @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     var body: some View {
@@ -360,8 +410,9 @@ struct OutputView: View {
                 PreviewHeader(collapsed: $previewCollapsed)
                 if !previewCollapsed {
                     ExportPreview(url: current.url)
-                        .frame(height: previewHeight)
-                    ResizeHandle(height: $previewHeight, defaultHeight: 220)
+                        .frame(height: PreviewSizing.height(fraction: previewFraction, area: areaHeight))
+                    ResizeHandle(height: PreviewSizing.binding(fraction: $previewFraction, area: areaHeight),
+                                 defaultHeight: areaHeight * 0.45)
                 }
             }
             if items.isEmpty {

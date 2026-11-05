@@ -19,6 +19,7 @@ enum Exporter {
     @MainActor
     static func export(clips: [Clip],
                        subtitles: [SubtitleSegment],
+                       style: SubtitleStyle,
                        format: OutputFormat,
                        quality: ExportQuality,
                        to url: URL,
@@ -26,7 +27,8 @@ enum Exporter {
         let result = try await Composer.build(clips: clips)
         let canvas = quality.scaled(format.canvas(base: result.renderSize))
         let overlay = OverlayState()
-        Renderer.prepareOverlay(overlay, subtitles: subtitles, canvas: canvas, watermark: Licensing.showsWatermark)
+        Renderer.prepareOverlay(overlay, subtitles: subtitles, style: style, canvas: canvas,
+                                watermark: Licensing.showsWatermark)
         let videoComposition = Renderer.videoComposition(for: result.composition, canvas: canvas, overlay: overlay)
 
         try await write(asset: result.composition,

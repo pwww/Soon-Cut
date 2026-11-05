@@ -4,37 +4,16 @@
     "" : {
       "shouldTranslate" : false
     },
-    "，剩不到 1 分鐘" : {
+    "%@ %lld" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : ", under a minute left"
-          }
-        },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "，剩不到 1 分鐘"
+            "state" : "new",
+            "value" : "%1$@ %2$lld"
           }
         }
-      }
-    },
-    "，約剩 %lld 分鐘" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : ", about %lld minutes left"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "，約剩 %lld 分鐘"
-          }
-        }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ · 約 %@" : {
       "localizations" : {
@@ -67,17 +46,6 @@
           }
         }
       }
-    },
-    "%@ %lld" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$lld"
-          }
-        }
-      },
-      "shouldTranslate" : false
     },
     "%lld" : {
       "shouldTranslate" : false
@@ -181,9 +149,7 @@
     "9:16" : {
       "shouldTranslate" : false
     },
-    "English" : {
-
-    },
+    "English" : {},
     "IG 貼文" : {
       "localizations" : {
         "en" : {
@@ -294,10 +260,10 @@
             "value" : "Drag up or down to resize; double-click to reset"
           }
         },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "上下拖動調整高度，雙擊回到預設"
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下拖動調整高度，雙擊回到預設"
           }
         }
       }
@@ -398,6 +364,16 @@
         }
       }
     },
+    "中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "M"
+          }
+        }
+      }
+    },
     "中文" : {
       "localizations" : {
         "en" : {
@@ -452,6 +428,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "付費版"
+          }
+        }
+      }
+    },
+    "位置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position"
           }
         }
       }
@@ -580,22 +566,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "免費版功能完整——錄影、字幕、剪輯、各種比例的輸出都沒有限制，只有輸出的影片右下角會有一個小小的「SoonCut」。"
-          }
-        }
-      }
-    },
-    "最新" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Latest"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最新"
           }
         }
       }
@@ -968,6 +938,36 @@
         }
       }
     },
+    "外框" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outline"
+          }
+        }
+      }
+    },
+    "大" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L"
+          }
+        }
+      }
+    },
+    "大小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size"
+          }
+        }
+      }
+    },
     "字幕" : {
       "localizations" : {
         "en" : {
@@ -980,6 +980,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字幕"
+          }
+        }
+      }
+    },
+    "字幕上下位置，一律水平置中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caption height on screen — always centered horizontally"
+          }
+        }
+      }
+    },
+    "字色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
           }
         }
       }
@@ -1032,6 +1052,16 @@
         }
       }
     },
+    "小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S"
+          }
+        }
+      }
+    },
     "小檔案" : {
       "localizations" : {
         "en" : {
@@ -1059,13 +1089,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "尚未框選範圍，先按「範圍」"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "展開"
+            "value" : "展開"
           }
         }
       }
@@ -1104,10 +1128,10 @@
             "value" : "Pinned on top (click to unpin so other windows can cover it)"
           }
         },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已固定在最上層（按一下取消，視窗可以被其他視窗蓋住）"
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已固定在最上層（按一下取消，視窗可以被其他視窗蓋住）"
           }
         }
       }
@@ -1336,6 +1360,16 @@
         }
       }
     },
+    "把暫存區的片段拖回這裡" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag set-aside clips back here"
+          }
+        }
+      }
+    },
     "把片段拖到這裡丟到垃圾桶" : {
       "localizations" : {
         "en" : {
@@ -1344,10 +1378,10 @@
             "value" : "Drag a clip here to move it to the Trash"
           }
         },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "把片段拖到這裡丟到垃圾桶"
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把片段拖到這裡丟到垃圾桶"
           }
         }
       }
@@ -1364,6 +1398,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "把要用的片段放在「剪輯片段」，這裡會接起來上字幕、輸出"
+          }
+        }
+      }
+    },
+    "拖到這裡暫存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag here to set aside"
+          }
+        }
+      }
+    },
+    "拖到這裡＝暫存，不放進這次輸出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drop here to set aside — these stay out of this export"
           }
         }
       }
@@ -1456,10 +1510,10 @@
             "value" : "Collapse"
           }
         },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "收合"
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收合"
           }
         }
       }
@@ -1472,10 +1526,10 @@
             "value" : "Release: move to Trash"
           }
         },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "放開：丟到垃圾桶"
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放開：丟到垃圾桶"
           }
         }
       }
@@ -1556,6 +1610,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫時無法取得商品資訊，請確認網路後再試。"
+          }
+        }
+      }
+    },
+    "最新" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新"
           }
         }
       }
@@ -1648,10 +1718,10 @@
             "value" : "Not pinned (click to keep on top)"
           }
         },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "沒有固定（按一下固定在最上層）"
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有固定（按一下固定在最上層）"
           }
         }
       }
@@ -1752,6 +1822,16 @@
         }
       }
     },
+    "無框" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No outline"
+          }
+        }
+      }
+    },
     "無法匯入：%@" : {
       "localizations" : {
         "en" : {
@@ -1848,6 +1928,16 @@
         }
       }
     },
+    "特大" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XL"
+          }
+        }
+      }
+    },
     "產生字幕" : {
       "localizations" : {
         "en" : {
@@ -1892,6 +1982,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "畫質"
+          }
+        }
+      }
+    },
+    "白框" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "White outline"
+          }
+        }
+      }
+    },
+    "白色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "White"
           }
         }
       }
@@ -2582,22 +2692,6 @@
         }
       }
     },
-    "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pick the spoken and caption languages, then press Generate captions. You can also export with no captions at all"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出"
-          }
-        }
-      }
-    },
     "選好語音與字幕語言，按「產生字幕」。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出" : {
       "localizations" : {
         "en" : {
@@ -2610,6 +2704,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選好語音與字幕語言，按「產生字幕」。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出"
+          }
+        }
+      }
+    },
+    "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick the spoken and caption languages, then press Generate captions. You can also export with no captions at all"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出"
           }
         }
       }
@@ -2688,6 +2798,16 @@
         }
       }
     },
+    "重設" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        }
+      }
+    },
     "錄好片段後會在這裡預覽與剪輯" : {
       "localizations" : {
         "en" : {
@@ -2700,6 +2820,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "錄好片段後會在這裡預覽與剪輯"
+          }
+        }
+      }
+    },
+    "錄完或匯入的片段會出現在這裡" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded or imported clips appear here"
           }
         }
       }
@@ -2805,13 +2935,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "韓文"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "預覽"
+            "value" : "預覽"
           }
         }
       }
@@ -2842,6 +2966,36 @@
         }
       }
     },
+    "黃色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yellow"
+          }
+        }
+      }
+    },
+    "黑框" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Black outline"
+          }
+        }
+      }
+    },
+    "黑色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Black"
+          }
+        }
+      }
+    },
     "點上面的片段就會在這裡播放與剪輯" : {
       "localizations" : {
         "en" : {
@@ -2858,6 +3012,16 @@
         }
       }
     },
+    "點左邊的片段就會在這裡播放與剪輯" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click a clip on the left to play and trim it here"
+          }
+        }
+      }
+    },
     "點片段，拖曳膠卷條兩端的黃色把手剪掉頭尾；按「在這裡剪開」（⌘B）可以把黃色區塊切成兩塊，拉開後中間會被跳過。也可以匯入現有的影片。左右拖動縮圖可以排順序，往下拖到「暫存區」就不會放進這次輸出。" : {
       "localizations" : {
         "en" : {
@@ -2870,6 +3034,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點片段，拖曳膠卷條兩端的黃色把手剪掉頭尾；按「在這裡剪開」（⌘B）可以把黃色區塊切成兩塊，拉開後中間會被跳過。也可以匯入現有的影片。左右拖動縮圖可以排順序，往下拖到「暫存區」就不會放進這次輸出。"
+          }
+        }
+      }
+    },
+    "，剩不到 1 分鐘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", under a minute left"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，剩不到 1 分鐘"
+          }
+        }
+      }
+    },
+    "，約剩 %lld 分鐘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", about %lld minutes left"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，約剩 %lld 分鐘"
           }
         }
       }
