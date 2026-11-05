@@ -1734,6 +1734,16 @@
         }
       }
     },
+    "標記已上傳" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as uploaded"
+          }
+        }
+      }
+    },
     "模型準備好了，正在轉寫，通常比影片長度快很多。" : {
       "localizations" : {
         "en" : {

@@ -524,7 +524,7 @@ struct ExportRow: View {
             Spacer()
 
             if item.status == .latest {
-                Button("已上傳") { store.setStatus(item, .uploaded) }
+                Button("標記已上傳") { store.setStatus(item, .uploaded) }
                     .controlSize(.small)
             }
 
