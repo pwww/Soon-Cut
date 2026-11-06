@@ -3255,6 +3255,16 @@
         }
       }
     },
+    "點一下跳到這一句；點文字可以直接修改" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to jump to this line; click the text to edit it"
+          }
+        }
+      }
+    },
     "點上方的片段就會在這裡播放與剪輯，按「全片」看整支" : {
       "localizations" : {
         "en" : {

@@ -404,6 +404,10 @@ struct SubtitleRow: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(isCurrent ? Color.accentColor.opacity(0.18) : Color.clear)
         )
+        // 點這一句的任何地方（包含點進文字開始編輯）預覽就跳到這一句
+        .contentShape(Rectangle())
+        .simultaneousGesture(TapGesture().onEnded { onSeek() })
+        .help("點一下跳到這一句；點文字可以直接修改")
     }
 }
 
