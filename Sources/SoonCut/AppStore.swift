@@ -158,9 +158,38 @@ final class AppStore: ObservableObject {
         loadClips()
         loadSubtitles()
         exports = OutputLibrary.load()
+        OutputLibrary.trashOrphanTranscripts()
+        watchExportsFolder()
         // 模型下載過的話，開 App 時就在背景先載入，按「產生字幕」不用再等
         if Transcriber.isModelDownloaded {
             Task { _ = try? await transcriber.loadModel() }
+        }
+    }
+
+    // MARK: 輸出資料夾監看：影片被拖到垃圾桶時，字幕稿跟著走、清單也更新
+
+    private var exportsWatcher: DispatchSourceFileSystemObject?
+
+    private func watchExportsFolder() {
+        let fd = open(OutputLibrary.exportsDir.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .delete],
+                                                               queue: .main)
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.exportsFolderChanged() }
+        }
+        source.setCancelHandler { close(fd) }
+        source.resume()
+        exportsWatcher = source
+    }
+
+    private func exportsFolderChanged() {
+        OutputLibrary.trashOrphanTranscripts()
+        let fm = FileManager.default
+        let remaining = exports.filter { fm.fileExists(atPath: $0.url.path) }
+        if remaining.count != exports.count {
+            exports = remaining
+            OutputLibrary.save(exports)
         }
     }
 

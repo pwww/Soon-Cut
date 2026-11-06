@@ -54,6 +54,18 @@ enum OutputLibrary {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    /// 影片已經不在（被拖到垃圾桶、在 Finder 刪掉或搬走）的 .srt 一起丟到垃圾桶
+    static func trashOrphanTranscripts() {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: exportsDir, includingPropertiesForKeys: nil) else { return }
+        for srt in files where srt.pathExtension.lowercased() == "srt" {
+            let video = srt.deletingPathExtension().appendingPathExtension("mp4")
+            if !fm.fileExists(atPath: video.path) {
+                try? fm.trashItem(at: srt, resultingItemURL: nil)
+            }
+        }
+    }
+
     static func save(_ items: [ExportItem]) {
         if let data = try? JSONEncoder().encode(items) {
             try? data.write(to: indexURL, options: .atomic)
