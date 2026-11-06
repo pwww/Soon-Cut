@@ -19,8 +19,61 @@ struct SubtitleEditor: View {
     @State private var confirmRegenerate = false
     @AppStorage("previewCollapsed") private var previewCollapsed = false
 
+    @State private var width: CGFloat = 0
+    /// 寬到這個程度，字幕稿就移到右側欄（像 RWD 網頁）
+    private static let sideBySideWidth: CGFloat = 820
+
+    private var isWide: Bool { width >= Self.sideBySideWidth }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Group {
+            if isWide {
+                HStack(alignment: .top, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        controls
+                    }
+                    .frame(maxWidth: .infinity, alignment: .top)
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("字幕稿").font(.headline)
+                        subtitleList
+                    }
+                    .frame(width: min(440, max(300, width * 0.36)))
+                    .frame(maxHeight: .infinity, alignment: .top)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    controls
+                    subtitleList
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .task(id: "\(store.sequenceKey)#\(store.outputFormat.rawValue)") { await rebuild() }
+        .onAppear { addObserver() }
+        .onDisappear {
+            removeObserver()
+            player.pause()
+        }
+        .onChange(of: isRecording) {
+            if isRecording { player.pause() }
+        }
+        .onChange(of: previewCollapsed) {
+            if previewCollapsed { player.pause() }
+        }
+        .onChange(of: store.subtitles) { refreshOverlay() }
+        .onChange(of: store.subtitlesOutdated) { refreshOverlay() }
+        .onChange(of: store.subtitleStyle) { refreshOverlay() }
+        .translationTask(store.translationConfig) { session in
+            await translate(with: session)
+        }
+    }
+
+    @ViewBuilder
+    private var controls: some View {
             PreviewHeader(collapsed: $previewCollapsed)
             if !previewCollapsed {
                 PlayerView(player: player)
@@ -56,26 +109,6 @@ struct SubtitleEditor: View {
                 .controlSize(.small)
             }
 
-            subtitleList
-        }
-        .task(id: "\(store.sequenceKey)#\(store.outputFormat.rawValue)") { await rebuild() }
-        .onAppear { addObserver() }
-        .onDisappear {
-            removeObserver()
-            player.pause()
-        }
-        .onChange(of: isRecording) {
-            if isRecording { player.pause() }
-        }
-        .onChange(of: previewCollapsed) {
-            if previewCollapsed { player.pause() }
-        }
-        .onChange(of: store.subtitles) { refreshOverlay() }
-        .onChange(of: store.subtitlesOutdated) { refreshOverlay() }
-        .onChange(of: store.subtitleStyle) { refreshOverlay() }
-        .translationTask(store.translationConfig) { session in
-            await translate(with: session)
-        }
     }
 
     // MARK: 語言

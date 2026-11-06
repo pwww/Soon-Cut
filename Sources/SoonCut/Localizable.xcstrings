@@ -1052,6 +1052,16 @@
         }
       }
     },
+    "字幕稿" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript"
+          }
+        }
+      }
+    },
     "字色" : {
       "localizations" : {
         "en" : {
