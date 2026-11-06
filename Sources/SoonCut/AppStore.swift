@@ -118,6 +118,8 @@ final class AppStore: ObservableObject {
         didSet { UserDefaults.standard.set(exportQuality.rawValue, forKey: "exportQuality") }
     }
     @Published private(set) var exportProgress: Double?
+    /// 螢幕錄影權限沒生效（沒開，或開了但這個行程還沒重新啟動）
+    @Published var needsScreenPermission = false
     @Published var appTab: AppTab = AppTab(rawValue: UserDefaults.standard.string(forKey: "appTab") ?? "") ?? .record {
         didSet { UserDefaults.standard.set(appTab.rawValue, forKey: "appTab") }
     }
@@ -223,9 +225,30 @@ final class AppStore: ObservableObject {
             currentURL = url
             isRecording = true
             errorMessage = nil
+            needsScreenPermission = false
             startTimer()
         } catch {
-            errorMessage = Self.describe(error)
+            if Self.isScreenPermissionError(error) || !CGPreflightScreenCaptureAccess() {
+                // 讓系統把 Soon-Cut 放進「螢幕與系統錄音」清單（第一次會跳系統對話框）。
+                // ⚠️ 在系統設定打開權限後，這個執行中的行程仍然拿不到——要重新開啟 App 才生效，
+                //    這就是「明明勾了還是不能錄」的原因，所以提示裡直接給「重新開啟」按鈕。
+                CGRequestScreenCaptureAccess()
+                needsScreenPermission = true
+                errorMessage = nil
+            } else {
+                errorMessage = Self.describe(error)
+            }
+        }
+    }
+
+    static func isScreenPermissionError(_ error: Error) -> Bool {
+        let ns = error as NSError
+        return ns.domain == "com.apple.ScreenCaptureKit.SCStreamErrorDomain" && ns.code == -3801
+    }
+
+    func openScreenRecordingSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
         }
     }
 

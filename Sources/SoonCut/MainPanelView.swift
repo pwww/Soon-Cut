@@ -28,6 +28,9 @@ struct MainPanelView: View {
             case .edit:
                 previewSection
             }
+            if store.needsScreenPermission {
+                ScreenPermissionBanner()
+            }
             if let msg = store.errorMessage {
                 Text(msg)
                     .font(.caption)
@@ -657,6 +660,34 @@ struct EditionBadge: View {
         case .free: return .orange
         case .pro: return .accentColor
         }
+    }
+}
+
+// MARK: - 螢幕錄影權限沒生效時的提示
+
+struct ScreenPermissionBanner: View {
+    @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("螢幕錄影權限還沒生效", systemImage: "exclamationmark.lock.fill")
+                .font(.callout.weight(.semibold))
+            Text("到「系統設定 › 隱私權與安全性 › 螢幕與系統錄音」打開 Soon-Cut（已經打開的話先關掉再打開），然後按「重新開啟」。macOS 要重新啟動 App 才會套用這個權限。")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button("打開系統設定") { store.openScreenRecordingSettings() }
+                Button("重新開啟 Soon-Cut") { LanguageMenu.relaunch() }
+                    .buttonStyle(.borderedProminent)
+                Spacer()
+                Button("關閉") { store.needsScreenPermission = false }
+                    .buttonStyle(.borderless)
+            }
+            .controlSize(.small)
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.15)))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.orange.opacity(0.5)))
     }
 }
 

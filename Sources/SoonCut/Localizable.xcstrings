@@ -647,6 +647,16 @@
         }
       }
     },
+    "到「系統設定 › 隱私權與安全性 › 螢幕與系統錄音」打開 Soon-Cut（已經打開的話先關掉再打開），然後按「重新開啟」。macOS 要重新啟動 App 才會套用這個權限。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings › Privacy & Security › Screen & System Audio Recording and turn on Soon-Cut (if it's already on, turn it off and on again), then click Restart. macOS only applies this permission after the app restarts."
+          }
+        }
+      }
+    },
     "剪輯" : {
       "localizations" : {
         "en" : {
@@ -1343,6 +1353,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打開片段資料夾"
+          }
+        }
+      }
+    },
+    "打開系統設定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
           }
         }
       }
@@ -2435,6 +2455,16 @@
         }
       }
     },
+    "螢幕錄影權限還沒生效" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen recording permission isn't active yet"
+          }
+        }
+      }
+    },
     "西班牙文" : {
       "localizations" : {
         "en" : {
@@ -2966,6 +2996,16 @@
         }
       }
     },
+    "重新開啟 Soon-Cut" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Soon-Cut"
+          }
+        }
+      }
+    },
     "重新開啟 Soon-Cut 後套用新語言" : {
       "localizations" : {
         "en" : {
@@ -3109,6 +3149,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開源版"
+          }
+        }
+      }
+    },
+    "關閉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         }
       }
