@@ -20,10 +20,13 @@ struct SubtitleEditor: View {
     @AppStorage("previewCollapsed") private var previewCollapsed = false
 
     @State private var width: CGFloat = 0
-    /// 寬到這個程度，字幕稿就移到右側欄（像 RWD 網頁）
-    private static let sideBySideWidth: CGFloat = 820
-
-    private var isWide: Bool { width >= Self.sideBySideWidth }
+    /// 視窗拉到螢幕一半寬時，字幕稿移到右側欄（像 RWD 網頁）
+    private var isWide: Bool {
+        let screenWidth = FloatingPanel.current?.screen?.visibleFrame.width
+            ?? NSScreen.main?.visibleFrame.width ?? 1440
+        let windowWidth = FloatingPanel.current?.frame.width ?? (width + 36)
+        return windowWidth >= screenWidth / 2
+    }
 
     var body: some View {
         Group {
