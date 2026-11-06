@@ -1560,6 +1560,16 @@
         }
       }
     },
+    "拷貝字幕稿（SRT）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Transcript (SRT)"
+          }
+        }
+      }
+    },
     "按「合成字幕輸出」後，到「輸出」分頁把影片卡片直接拖進 Threads 等網頁的上傳框就完成了。發完可以標記「已上傳」，舊影片可以封存。" : {
       "localizations" : {
         "en" : {

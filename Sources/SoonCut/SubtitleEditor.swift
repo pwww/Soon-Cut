@@ -574,6 +574,14 @@ struct ExportRow: View {
                 }
                 Divider()
                 Button("在 Finder 中顯示") { store.reveal(item) }
+                if FileManager.default.fileExists(atPath: SRTWriter.url(for: item.url).path) {
+                    Button("拷貝字幕稿（SRT）") {
+                        if let text = try? String(contentsOf: SRTWriter.url(for: item.url), encoding: .utf8) {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(text, forType: .string)
+                        }
+                    }
+                }
                 Button("丟到垃圾桶", role: .destructive) { store.trash(item) }
             } label: {
                 Image(systemName: "ellipsis.circle")

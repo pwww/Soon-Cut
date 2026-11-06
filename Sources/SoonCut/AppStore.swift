@@ -730,10 +730,11 @@ final class AppStore: ObservableObject {
         exportProgress = 0
         let format = outputFormat
         let quality = exportQuality
+        let captions = effectiveSubtitles
         Task {
             do {
                 let duration = try await Exporter.export(
-                    clips: activeClips, subtitles: effectiveSubtitles, style: subtitleStyle,
+                    clips: activeClips, subtitles: captions, style: subtitleStyle,
                     format: format, quality: quality, to: url,
                     progress: { [weak self] p in
                         Task { @MainActor in
@@ -743,6 +744,8 @@ final class AppStore: ObservableObject {
                 let item = ExportItem(file: url.lastPathComponent, status: .latest,
                                       createdAt: Date(), duration: duration,
                                       format: "\(format.label) · \(quality.label)")
+                // 同名 .srt 字幕稿（失敗不影響影片本身）
+                try? SRTWriter.write(captions, nextTo: url)
                 exports.insert(item, at: 0)
                 OutputLibrary.save(exports)
                 outputTab = .latest
@@ -773,6 +776,10 @@ final class AppStore: ObservableObject {
     func trash(_ item: ExportItem) {
         do {
             try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
+            let srt = SRTWriter.url(for: item.url)
+            if FileManager.default.fileExists(atPath: srt.path) {
+                try? FileManager.default.trashItem(at: srt, resultingItemURL: nil)
+            }
             exports.removeAll { $0.id == item.id }
             OutputLibrary.save(exports)
         } catch {
