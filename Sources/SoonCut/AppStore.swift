@@ -752,6 +752,37 @@ final class AppStore: ObservableObject {
 
     var isExporting: Bool { exportStatus != nil }
 
+    /// 只輸出字幕檔（SRT），不合成影片。讓使用者選存放位置。
+    func exportSubtitlesOnly() {
+        let captions = effectiveSubtitles
+        let text = SRTWriter.srt(from: captions)
+        guard !text.isEmpty else { return }
+
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd-HHmmss"
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "soon-cut-\(f.string(from: Date())).srt"
+        panel.directoryURL = ClipStorage.rootDir
+        panel.canCreateDirectories = true
+        panel.message = String(localized: "字幕時間對應目前預排片段接起來的全片")
+
+        let save: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try text.write(to: url, atomically: true, encoding: .utf8)
+                Self.revealInFinder(url)
+            } catch {
+                self?.errorMessage = Self.describe(error)
+            }
+        }
+        // 浮動視窗在最上層，用 sheet 掛在它上面，存檔視窗才不會被蓋住
+        if let window = FloatingPanel.current {
+            panel.beginSheetModal(for: window, completionHandler: save)
+        } else {
+            save(panel.runModal())
+        }
+    }
+
     func exportVideo() {
         guard !isExporting, !activeClips.isEmpty else { return }
         let url = OutputLibrary.newExportURL()

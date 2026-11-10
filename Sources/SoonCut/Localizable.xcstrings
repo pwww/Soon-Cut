@@ -540,6 +540,16 @@
         }
       }
     },
+    "先產生字幕，才能只輸出字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generate captions first to export them on their own"
+          }
+        }
+      }
+    },
     "免費版" : {
       "localizations" : {
         "en" : {
@@ -579,6 +589,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All"
+          }
+        }
+      }
+    },
+    "其他輸出方式：只輸出字幕檔（SRT），不合成影片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More export options: save just the caption file (SRT) without making a video"
           }
         }
       }
@@ -808,6 +828,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只能匯入 MP4、MOV、M4V 影片。"
+          }
+        }
+      }
+    },
+    "只輸出字幕（SRT）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Captions Only (SRT)"
           }
         }
       }
@@ -1048,6 +1078,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Caption height on screen — always centered horizontally"
+          }
+        }
+      }
+    },
+    "字幕時間對應目前預排片段接起來的全片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caption times match all clips in this edit joined together"
           }
         }
       }
