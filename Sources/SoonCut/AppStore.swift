@@ -1081,7 +1081,8 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func exportVideo() {
+    /// - Parameter burnCaptions: false＝只輸出影片，不把字幕燒進畫面（字幕稿 .srt 仍會放在旁邊）
+    func exportVideo(burnCaptions: Bool = true) {
         guard !isExporting, !activeClips.isEmpty else { return }
         let url = OutputLibrary.newExportURL()
         exportStatus = String(localized: "輸出中…")
@@ -1092,7 +1093,7 @@ final class AppStore: ObservableObject {
         Task {
             do {
                 let duration = try await Exporter.export(
-                    clips: activeClips, subtitles: captions, style: subtitleStyle,
+                    clips: activeClips, subtitles: burnCaptions ? captions : [], style: subtitleStyle,
                     format: format, quality: quality, to: url,
                     progress: { [weak self] p in
                         Task { @MainActor in
@@ -1101,7 +1102,9 @@ final class AppStore: ObservableObject {
                     })
                 let item = ExportItem(file: url.lastPathComponent, status: .latest,
                                       createdAt: Date(), duration: duration,
-                                      format: "\(format.label) · \(quality.label)")
+                                      format: burnCaptions || captions.isEmpty
+                                          ? "\(format.label) · \(quality.label)"
+                                          : "\(format.label) · \(quality.label) · \(String(localized: "無字幕"))")
                 // 同名 .srt 字幕稿（失敗不影響影片本身）
                 try? SRTWriter.write(captions, nextTo: url)
                 exports.insert(item, at: 0)

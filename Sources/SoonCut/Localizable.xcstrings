@@ -633,6 +633,16 @@
         }
       }
     },
+    "其他輸出方式：只輸出影片（不加字幕），或只輸出字幕檔（SRT）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More export options: the video without captions, or just the caption file (SRT)"
+          }
+        }
+      }
+    },
     "刪掉播放線所在的黃色區段" : {
       "localizations" : {
         "en" : {
@@ -909,6 +919,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export Captions Only (SRT)"
+          }
+        }
+      }
+    },
+    "只輸出影片（不加字幕）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Video Without Captions"
           }
         }
       }
@@ -2177,6 +2197,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "準備語音模型"
+          }
+        }
+      }
+    },
+    "無字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no captions"
           }
         }
       }

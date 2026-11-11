@@ -310,6 +310,13 @@ struct SubtitleEditor: View {
                 // 其他輸出方式
                 Menu {
                     Button {
+                        store.exportVideo(burnCaptions: false)
+                    } label: {
+                        Label("只輸出影片（不加字幕）", systemImage: "film")
+                    }
+                    .disabled(store.isExporting || store.isTranscribing)
+
+                    Button {
                         store.exportSubtitlesOnly()
                     } label: {
                         Label("只輸出字幕（SRT）", systemImage: "captions.bubble")
@@ -321,7 +328,7 @@ struct SubtitleEditor: View {
                 .menuIndicator(.hidden)
                 .fixedSize()
                 .disabled(store.isExporting || store.isTranscribing)
-                .help(store.effectiveSubtitles.isEmpty ? "先產生字幕，才能只輸出字幕" : "其他輸出方式：只輸出字幕檔（SRT），不合成影片")
+                .help("其他輸出方式：只輸出影片（不加字幕），或只輸出字幕檔（SRT）")
             }
             .controlSize(.large)
 
