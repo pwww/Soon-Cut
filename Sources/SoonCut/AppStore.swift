@@ -851,7 +851,7 @@ final class AppStore: ObservableObject {
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename],
                                                                queue: .main)
         source.setEventHandler { [weak self] in
-            MainActor.assumeIsolated { self?.captionFileChanged() }
+            MainActor.assumeIsolated { _ = self?.captionFileChanged() }
         }
         source.setCancelHandler { close(fd) }
         source.resume()
