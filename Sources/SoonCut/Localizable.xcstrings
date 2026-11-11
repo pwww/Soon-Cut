@@ -629,7 +629,18 @@
         }
       }
     },
+    "刪除字幕「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete caption “%@”"
+          }
+        }
+      }
+    },
     "刪除這一句" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -683,6 +694,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open System Settings › Privacy & Security › Screen & System Audio Recording and turn on Soon-Cut (if it's already on, turn it off and on again), then click Restart. macOS only applies this permission after the app restarts."
+          }
+        }
+      }
+    },
+    "剪掉「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cut “%@”"
           }
         }
       }
@@ -1284,16 +1305,6 @@
         }
       }
     },
-    "已從影片剪掉「%@」" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cut “%@” from the video"
-          }
-        }
-      }
-    },
     "已移除浮水印" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1424,6 +1435,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Undo"
+          }
+        }
+      }
+    },
+    "復原：%@（⌥⌘Z）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo: %@ (⌥⌘Z)"
           }
         }
       }
@@ -3059,6 +3080,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No clips yet — record or import one on the Record tab"
+          }
+        }
+      }
+    },
+    "重做" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo"
+          }
+        }
+      }
+    },
+    "重做：%@（⌥⇧⌘Z）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo: %@ (⌥⇧⌘Z)"
           }
         }
       }

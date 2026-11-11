@@ -359,17 +359,36 @@ struct SubtitleEditor: View {
                     .font(.caption)
                     .foregroundStyle(.green)
             }
-            if let cut = store.lastCut {
+            if !store.undoStack.isEmpty || !store.redoStack.isEmpty {
                 HStack(spacing: 6) {
-                    Image(systemName: "scissors")
-                    Text("已從影片剪掉「\(cut.text)」")
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer(minLength: 4)
-                    Button("復原") { store.undoCut() }
-                        .controlSize(.small)
+                    Button {
+                        store.undoEdit()
+                    } label: {
+                        Label("復原", systemImage: "arrow.uturn.backward")
+                    }
+                    .disabled(!store.canUndoEdit)
+                    .keyboardShortcut("z", modifiers: [.command, .option])
+                    .help(store.undoStack.last.map { String(localized: "復原：\($0.label)（⌥⌘Z）") } ?? "")
+
+                    Button {
+                        store.redoEdit()
+                    } label: {
+                        Label("重做", systemImage: "arrow.uturn.forward")
+                    }
+                    .disabled(!store.canRedoEdit)
+                    .keyboardShortcut("z", modifiers: [.command, .option, .shift])
+                    .help(store.redoStack.last.map { String(localized: "重做：\($0.label)（⌥⇧⌘Z）") } ?? "")
+
+                    if let last = store.undoStack.last {
+                        Text(last.label)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer(minLength: 0)
                 }
                 .font(.caption)
+                .controlSize(.small)
                 .padding(6)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.12)))
             }

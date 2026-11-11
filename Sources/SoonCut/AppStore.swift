@@ -344,7 +344,7 @@ final class AppStore: ObservableObject {
         guard let i = clips.firstIndex(where: { $0.id == clipID }) else { return }
         let cleaned = ClipStorage.sanitize(ranges, duration: clips[i].duration)
         guard !cleaned.isEmpty else { return }
-        lastCut = nil   // 手動剪過就不能再用「復原剪掉」，避免把這次的修改蓋掉
+        clearEditHistory()   // 手動剪過就不能再復原／重做字幕剪輯，避免把這次的修改蓋掉
         let startChanged = abs(clips[i].trimStart - cleaned[0].start) > 0.05
         clips[i].ranges = cleaned
         ClipStorage.saveLibrary(clips)
@@ -479,7 +479,7 @@ final class AppStore: ObservableObject {
     /// 移進／移出暫存區。移回使用中時放在最後面
     func setStaged(_ id: UUID, _ staged: Bool) {
         guard let i = clips.firstIndex(where: { $0.id == id }), clips[i].isStaged != staged else { return }
-        lastCut = nil
+        clearEditHistory()
         var clip = clips.remove(at: i)
         clip.isStaged = staged
         if staged {
@@ -509,7 +509,7 @@ final class AppStore: ObservableObject {
 
     func transcribeSequence() {
         guard !isTranscribing, !activeClips.isEmpty else { return }
-        lastCut = nil
+        clearEditHistory()
         let key = sequenceKey
         let currentClips = activeClips
         Task {
@@ -701,6 +701,9 @@ final class AppStore: ObservableObject {
     }
 
     func deleteSubtitle(id: UUID) {
+        if let seg = subtitles.first(where: { $0.id == id }) {
+            recordEdit(String(localized: "刪除字幕「\(seg.text)」"))
+        }
         subtitles.removeAll { $0.id == id }
         saveSubtitles()
     }
@@ -822,14 +825,58 @@ final class AppStore: ObservableObject {
 
     // MARK: - 用字幕剪影片：刪掉一句＝把那段畫面與聲音從片段剪掉
 
-    struct CutUndo {
+    /// 復原／重做用的狀態快照（片段的剪輯點與字幕）
+    struct EditSnapshot {
         let clips: [Clip]
         let subtitles: [SubtitleSegment]
         let sourceSubtitles: [SubtitleSegment]
         let subtitlesKey: String?
-        let text: String
+        let label: String
     }
-    @Published private(set) var lastCut: CutUndo?
+    @Published private(set) var undoStack: [EditSnapshot] = []
+    @Published private(set) var redoStack: [EditSnapshot] = []
+    private static let historyLimit = 50
+
+    var canUndoEdit: Bool { !undoStack.isEmpty && !isTranscribing && !isExporting }
+    var canRedoEdit: Bool { !redoStack.isEmpty && !isTranscribing && !isExporting }
+
+    private func snapshot(_ label: String) -> EditSnapshot {
+        EditSnapshot(clips: clips, subtitles: subtitles, sourceSubtitles: sourceSubtitles,
+                     subtitlesKey: subtitlesKey, label: label)
+    }
+
+    /// 做一個可以復原的動作之前呼叫
+    private func recordEdit(_ label: String) {
+        undoStack.append(snapshot(label))
+        if undoStack.count > Self.historyLimit { undoStack.removeFirst() }
+        redoStack.removeAll()
+    }
+
+    private func restore(_ s: EditSnapshot) {
+        clips = s.clips
+        ClipStorage.saveLibrary(clips)
+        subtitles = s.subtitles
+        sourceSubtitles = s.sourceSubtitles
+        subtitlesKey = s.subtitlesKey
+        saveSubtitles()
+    }
+
+    func undoEdit() {
+        guard canUndoEdit, let last = undoStack.popLast() else { return }
+        redoStack.append(snapshot(last.label))
+        restore(last)
+    }
+
+    func redoEdit() {
+        guard canRedoEdit, let next = redoStack.popLast() else { return }
+        undoStack.append(snapshot(next.label))
+        restore(next)
+    }
+
+    func clearEditHistory() {
+        undoStack.removeAll()
+        redoStack.removeAll()
+    }
 
     var canCutBySubtitle: Bool { !subtitlesOutdated && !isTranscribing && !isExporting && !subtitles.isEmpty }
 
@@ -841,8 +888,7 @@ final class AppStore: ObservableObject {
     /// 把全片時間軸上的 [from, to) 從各片段的黃色區段剪掉，字幕跟著往前移
     func cutSequence(from a: Double, to b: Double, label: String) {
         guard b - a > 0.05 else { return }
-        let snapshot = CutUndo(clips: clips, subtitles: subtitles, sourceSubtitles: sourceSubtitles,
-                               subtitlesKey: subtitlesKey, text: label)
+        let before = snapshot(String(localized: "剪掉「\(label)」"))
         let wasInSync = !subtitlesOutdated
         let minLen = ClipStorage.minClipLength
 
@@ -907,20 +953,12 @@ final class AppStore: ObservableObject {
         sourceSubtitles = remap(sourceSubtitles)
         if wasInSync { subtitlesKey = sequenceKey }
         saveSubtitles()
-        lastCut = snapshot
+        undoStack.append(before)
+        if undoStack.count > Self.historyLimit { undoStack.removeFirst() }
+        redoStack.removeAll()
         for id in newRanges.keys { refreshThumbnail(id) }
     }
 
-    func undoCut() {
-        guard let undo = lastCut else { return }
-        clips = undo.clips
-        ClipStorage.saveLibrary(clips)
-        subtitles = undo.subtitles
-        sourceSubtitles = undo.sourceSubtitles
-        subtitlesKey = undo.subtitlesKey
-        saveSubtitles()
-        lastCut = nil
-    }
 
     private func loadSubtitles() {
         guard let data = try? Data(contentsOf: subtitlesURL),
