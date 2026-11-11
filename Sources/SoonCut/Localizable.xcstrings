@@ -66,6 +66,16 @@
         }
       }
     },
+    "1. 按右上「校正資料夾」\n2. 讓 Claude 或本機 LLM 連到這個資料夾\n3. 複製下面的指令貼給它\n4. 它存檔後，字幕稿會自動更新" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Click Proofreading Folder at the top right\n2. Point Claude or a local LLM at that folder\n3. Copy a prompt below and paste it in\n4. When it saves, the transcript updates by itself"
+          }
+        }
+      }
+    },
     "1. 框選錄影範圍" : {
       "localizations" : {
         "en" : {
@@ -1173,6 +1183,16 @@
         }
       }
     },
+    "完整校正（附修改清單）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full proofread (with a list of changes)"
+          }
+        }
+      }
+    },
     "寫入中斷" : {
       "localizations" : {
         "en" : {
@@ -1201,6 +1221,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "寫入影片失敗：%@"
+          }
+        }
+      }
+    },
+    "寫社群貼文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a social post"
           }
         }
       }
@@ -1328,6 +1358,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已移除浮水印"
+          }
+        }
+      }
+    },
+    "已複製" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
           }
         }
       }
@@ -1471,6 +1511,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "德文"
+          }
+        }
+      }
+    },
+    "快速校正" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick proofread"
           }
         }
       }
@@ -1834,6 +1884,16 @@
         }
       }
     },
+    "整理術語表" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build a glossary"
+          }
+        }
+      }
+    },
     "日文" : {
       "localizations" : {
         "en" : {
@@ -2185,6 +2245,16 @@
         }
       }
     },
+    "照 README 校正 captions.srt，存回原檔" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofread captions.srt following README.md and save it back to the same file."
+          }
+        }
+      }
+    },
     "片段在轉寫後有變動，舊字幕先不套用到預覽和輸出。" : {
       "localizations" : {
         "en" : {
@@ -2239,6 +2309,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "產生字幕"
+          }
+        }
+      }
+    },
+    "用 LLM 校正字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofread with an LLM"
           }
         }
       }
@@ -2636,6 +2716,16 @@
         }
       }
     },
+    "複製" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        }
+      }
+    },
     "西班牙文" : {
       "localizations" : {
         "en" : {
@@ -2668,6 +2758,26 @@
         }
       }
     },
+    "讀 captions.srt，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read captions.srt and write a Threads post: a hook in the first line, three key points, and a question to close. Under 500 characters, conversational tone."
+          }
+        }
+      }
+    },
+    "讀 captions.srt，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read captions.srt and list the correct spellings of the people, organizations, places and technical terms in the video. Append them to glossary.md, keeping what's already there."
+          }
+        }
+      }
+    },
     "讀取中斷" : {
       "localizations" : {
         "en" : {
@@ -2680,6 +2790,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "讀取中斷"
+          }
+        }
+      }
+    },
+    "讀這個資料夾的 README.md 和 glossary.md，校正 captions.srt 的錯別字、同音字、人名、機構與專有名詞（不確定的請上網查證）。不要改編號、時間軸和句數。改完直接存回 captions.srt，最後列出你改了哪些句子，以及沒把握所以沒改的地方。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read README.md and glossary.md in this folder, then fix typos, sound-alike errors, names, organizations and technical terms in captions.srt (look things up if unsure). Don't change the numbers, timestamps or line count. Save it back to captions.srt, then list the lines you changed and anything you weren't sure about and left alone."
           }
         }
       }

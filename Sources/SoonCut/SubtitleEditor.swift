@@ -354,6 +354,7 @@ struct SubtitleEditor: View {
                 .font(.caption)
                 .help("captions.srt 會一直跟著字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來")
             }
+            ProofreadGuide()
             if let note = store.captionNote {
                 Label(note, systemImage: "checkmark.circle.fill")
                     .font(.caption)
@@ -769,5 +770,70 @@ struct ExportPreview: View {
     private func load() {
         player.pause()
         player.replaceCurrentItem(with: AVPlayerItem(url: url))
+    }
+}
+
+// MARK: - 用 LLM 校正字幕：說明＋可直接複製的 prompts（可收合）
+
+struct ProofreadGuide: View {
+    @AppStorage("proofreadGuideExpanded") private var expanded = false
+    @State private var copiedIndex: Int?
+
+    private var prompts: [(title: String, text: String)] {
+        [
+            (String(localized: "快速校正"),
+             String(localized: "照 README 校正 captions.srt，存回原檔")),
+            (String(localized: "完整校正（附修改清單）"),
+             String(localized: "讀這個資料夾的 README.md 和 glossary.md，校正 captions.srt 的錯別字、同音字、人名、機構與專有名詞（不確定的請上網查證）。不要改編號、時間軸和句數。改完直接存回 captions.srt，最後列出你改了哪些句子，以及沒把握所以沒改的地方。")),
+            (String(localized: "整理術語表"),
+             String(localized: "讀 captions.srt，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。")),
+            (String(localized: "寫社群貼文"),
+             String(localized: "讀 captions.srt，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。")),
+        ]
+    }
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $expanded) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("1. 按右上「校正資料夾」\n2. 讓 Claude 或本機 LLM 連到這個資料夾\n3. 複製下面的指令貼給它\n4. 它存檔後，字幕稿會自動更新")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ForEach(Array(prompts.enumerated()), id: \.offset) { i, prompt in
+                    HStack(alignment: .top, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(prompt.title).font(.caption.weight(.semibold))
+                            Text(prompt.text)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(3)
+                                .textSelection(.enabled)
+                        }
+                        Spacer(minLength: 4)
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(prompt.text, forType: .string)
+                            copiedIndex = i
+                            Task {
+                                try? await Task.sleep(for: .seconds(1.5))
+                                if copiedIndex == i { copiedIndex = nil }
+                            }
+                        } label: {
+                            Label(copiedIndex == i ? "已複製" : "複製",
+                                  systemImage: copiedIndex == i ? "checkmark" : "doc.on.doc")
+                        }
+                        .controlSize(.small)
+                        .fixedSize()
+                    }
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+                }
+            }
+            .padding(.top, 4)
+        } label: {
+            Label("用 LLM 校正字幕", systemImage: "sparkles")
+                .font(.caption.weight(.medium))
+        }
     }
 }
