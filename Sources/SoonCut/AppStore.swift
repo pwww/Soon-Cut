@@ -351,6 +351,14 @@ final class AppStore: ObservableObject {
         if startChanged { refreshThumbnail(clipID) }
     }
 
+    /// 片段速度（預覽與輸出都照這個）。改了之後字幕時間會對不上，會提示重新產生
+    func setSpeed(clipID: UUID, _ speed: Double) {
+        guard let i = clips.firstIndex(where: { $0.id == clipID }), clips[i].speed != speed else { return }
+        clearEditHistory()
+        clips[i].speed = speed
+        ClipStorage.saveLibrary(clips)
+    }
+
     private func refreshThumbnail(_ id: UUID) {
         guard let clip = clips.first(where: { $0.id == id }) else { return }
         Task {
@@ -495,6 +503,7 @@ final class AppStore: ObservableObject {
     var sequenceKey: String {
         activeClips.map { clip in
             clip.url.lastPathComponent + "@" + clip.ranges.map { "\($0.start)-\($0.end)" }.joined(separator: ",")
+                + (clip.speed == 1 ? "" : "x\(clip.speed)")
         }.joined(separator: "|")
     }
 
@@ -897,20 +906,22 @@ final class AppStore: ObservableObject {
         var cursor = 0.0
         for clip in activeClips {
             var kept: [ClipRange] = []
+            let speed = max(clip.speed, 0.1)
             for r in clip.ranges {
                 let segStart = cursor
-                let segEnd = cursor + r.length
+                let segEnd = cursor + r.length / speed
                 cursor = segEnd
                 let os = max(a, segStart), oe = min(b, segEnd)
                 guard oe - os > 0.01 else { kept.append(r); continue }
-                var cutS = r.start + (os - segStart)
-                var cutE = r.start + (oe - segStart)
+                var cutS = r.start + (os - segStart) * speed
+                var cutE = r.start + (oe - segStart) * speed
                 // 剩下的頭尾太短（不到最短長度）就一起剪掉，時間才算得準
                 if cutS - r.start < minLen { cutS = r.start }
                 if r.end - cutE < minLen { cutE = r.end }
                 if cutS > r.start { kept.append(ClipRange(start: r.start, end: cutS)) }
                 if cutE < r.end { kept.append(ClipRange(start: cutE, end: r.end)) }
-                removed.append(ClipRange(start: segStart + (cutS - r.start), end: segStart + (cutE - r.start)))
+                removed.append(ClipRange(start: segStart + (cutS - r.start) / speed,
+                                         end: segStart + (cutE - r.start) / speed))
             }
             newRanges[clip.id] = kept
         }

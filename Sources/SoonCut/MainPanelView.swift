@@ -186,7 +186,7 @@ struct MainPanelView: View {
     private var clipsSection: some View {
         let active = store.activeClips
         let staged = store.stagedClips
-        let total = active.reduce(0) { $0 + $1.trimmedDuration }
+        let total = active.reduce(0) { $0 + $1.playbackDuration }
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -569,7 +569,8 @@ struct ClipThumb: View {
             .clipped()
             .opacity(dimmed ? 0.6 : 1)
 
-            Text(formatTime(clip.trimmedDuration))
+            Text(clip.speed == 1 ? formatTime(clip.playbackDuration)
+                                 : "\(formatTime(clip.playbackDuration)) · \(SpeedOption.label(clip.speed))")
                 .font(.caption2.monospacedDigit())
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1)

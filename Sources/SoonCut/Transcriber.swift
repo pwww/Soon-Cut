@@ -165,6 +165,7 @@ actor Transcriber {
             throw TranscribeError.noAudio
         }
         if let timeRange { session.timeRange = timeRange }
+        session.audioTimePitchAlgorithm = .spectral   // 變速片段保持音高，辨識比較準
         let out = FileManager.default.temporaryDirectory
             .appendingPathComponent("sooncut-\(UUID().uuidString).m4a")
         try await session.export(to: out, as: .m4a)

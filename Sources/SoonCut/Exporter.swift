@@ -70,6 +70,7 @@ enum Exporter {
                 AVSampleRateKey: 48_000,
                 AVNumberOfChannelsKey: 2
             ])
+            output.audioTimePitchAlgorithm = .spectral   // 變速時保持音高
             reader.add(output)
             audioOutput = output
         }

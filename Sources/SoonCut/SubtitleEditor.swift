@@ -440,6 +440,7 @@ struct SubtitleEditor: View {
             Renderer.prepareOverlay(overlay, subtitles: store.effectiveSubtitles, style: store.subtitleStyle, canvas: newCanvas,
                                     watermark: Licensing.showsWatermark)
             let item = AVPlayerItem(asset: result.composition)
+            item.audioTimePitchAlgorithm = .spectral   // 變速片段保持音高
             item.videoComposition = Renderer.videoComposition(for: result.composition, canvas: newCanvas, overlay: overlay)
             let resumeAt = player.currentTime()
             player.replaceCurrentItem(with: item)

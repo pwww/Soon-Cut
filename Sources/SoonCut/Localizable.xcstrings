@@ -2993,6 +2993,16 @@
         }
       }
     },
+    "這個片段的播放速度，預覽和輸出都照這個速度（聲音會保持原本音高）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback speed for this clip; preview and export both use it (voices keep their pitch)"
+          }
+        }
+      }
+    },
     "這筆購買無法驗證。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3006,6 +3016,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這筆購買無法驗證。"
+          }
+        }
+      }
+    },
+    "速度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed"
           }
         }
       }

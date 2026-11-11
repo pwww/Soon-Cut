@@ -54,7 +54,7 @@ struct ClipEditor: View {
             .padding(.horizontal, 6)   // 把手離視窗縮放邊框遠一點
 
             HStack(spacing: 8) {
-                Text("保留 \(draftRanges.count) 段　共 \(formatTime(keptLength))")
+                Text("保留 \(draftRanges.count) 段　共 \(formatTime(keptLength / max(clip.speed, 0.1)))")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -85,11 +85,28 @@ struct ClipEditor: View {
             }
             .controlSize(.small)
             .font(.caption)
+
+            HStack(spacing: 8) {
+                Text("速度").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: Binding(
+                    get: { clip.speed },
+                    set: { store.setSpeed(clipID: clip.id, $0) }
+                )) {
+                    ForEach(SpeedOption.all, id: \.self) { v in
+                        Text(SpeedOption.label(v)).tag(v)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help("這個片段的播放速度，預覽和輸出都照這個速度（聲音會保持原本音高）")
+            }
+            .controlSize(.small)
         }
         .onAppear {
             reload()
             addObserver()
         }
+        .onChange(of: clip.speed) { applySpeed() }
         .onChange(of: clip.id) { reload() }
         .onChange(of: clip.ranges) {
             // 剪開、刪除、還原後同步
@@ -116,9 +133,19 @@ struct ClipEditor: View {
 
     private func reload() {
         draftRanges = clip.ranges
-        player.replaceCurrentItem(with: AVPlayerItem(url: clip.url))
+        let item = AVPlayerItem(url: clip.url)
+        item.audioTimePitchAlgorithm = .spectral   // 變速時保持音高
+        player.replaceCurrentItem(with: item)
+        applySpeed()
         applyRangesToPlayer()
         seek(to: draftRanges.first?.start ?? 0)
+    }
+
+    /// 播放鍵用 defaultRate，所以按播放就會是這個片段的速度
+    private func applySpeed() {
+        let rate = Float(clip.speed)
+        player.defaultRate = rate
+        if player.rate != 0 { player.rate = rate }
     }
 
     private func applyRangesToPlayer() {
@@ -415,4 +442,15 @@ struct PlayerView: NSViewRepresentable {
 
 func cmTime(_ seconds: Double) -> CMTime {
     CMTime(seconds: seconds, preferredTimescale: 600)
+}
+
+// MARK: - 播放速度選項
+
+enum SpeedOption {
+    static let all: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 2]
+
+    static func label(_ v: Double) -> String {
+        let text = v == v.rounded() ? String(Int(v)) : String(format: "%g", v)
+        return text + "×"
+    }
 }

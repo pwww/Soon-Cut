@@ -16,10 +16,14 @@ struct Clip: Identifiable {
     var thumbnail: NSImage?
     var ranges: [ClipRange] = []
     var isStaged = false   // 在暫存區：不放進這次剪輯與輸出
+    /// 播放速度（0.5＝慢一倍、2＝快一倍）；預覽與輸出都照這個速度
+    var speed: Double = 1
 
     var trimStart: Double { ranges.first?.start ?? 0 }
     var trimEnd: Double { ranges.last?.end ?? duration }
     var trimmedDuration: Double { ranges.reduce(0) { $0 + $1.length } }
+    /// 套用速度後在成片裡的長度
+    var playbackDuration: Double { trimmedDuration / max(speed, 0.1) }
     var isTrimmed: Bool { ranges.count > 1 || trimStart > 0.01 || trimEnd < duration - 0.01 }
 
     /// 包含 time 的區段索引
@@ -36,6 +40,7 @@ struct LibraryEntry: Codable {
     var trimEnd: Double
     var staged: Bool?
     var ranges: [ClipRange]?
+    var speed: Double?
 }
 
 enum ClipStorage {
@@ -93,7 +98,7 @@ enum ClipStorage {
         let entries = clips.map {
             LibraryEntry(id: $0.id.uuidString, file: $0.url.lastPathComponent,
                          trimStart: $0.trimStart, trimEnd: $0.trimEnd, staged: $0.isStaged,
-                         ranges: $0.ranges)
+                         ranges: $0.ranges, speed: $0.speed == 1 ? nil : $0.speed)
         }
         if let data = try? JSONEncoder().encode(entries) {
             try? data.write(to: libraryURL, options: .atomic)
@@ -117,6 +122,7 @@ enum ClipStorage {
             let cleaned = sanitize(saved, duration: clip.duration)
             if !cleaned.isEmpty { clip.ranges = cleaned }
             clip.isStaged = e.staged ?? false
+            clip.speed = e.speed ?? 1
             if clip.trimStart > 0.1 {
                 clip.thumbnail = await thumbnail(for: clip)
             }

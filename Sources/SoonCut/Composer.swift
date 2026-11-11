@@ -55,8 +55,14 @@ enum Composer {
                     guard k < audioTracks.count else { break }
                     try audioTracks[k].insertTimeRange(sourceRange, of: srcAudio, at: cursor)
                 }
-                segments.append((CMTimeRange(start: cursor, duration: duration), size, preferred))
-                cursor = cursor + duration
+                // 變速：把剛插入的這段縮放成 duration / speed（影像和所有音軌一起）
+                var placed = duration
+                if abs(clip.speed - 1) > 0.001 {
+                    placed = CMTimeMultiplyByFloat64(duration, multiplier: 1 / clip.speed)
+                    composition.scaleTimeRange(CMTimeRange(start: cursor, duration: duration), toDuration: placed)
+                }
+                segments.append((CMTimeRange(start: cursor, duration: placed), size, preferred))
+                cursor = cursor + placed
             }
         }
 
