@@ -346,6 +346,14 @@ struct SubtitleEditor: View {
                 Text("字幕稿").font(.headline)
                 Spacer()
                 Button {
+                    store.reloadCaptionFile()
+                } label: {
+                    Label("重新整理", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .help("重新讀取字幕校正資料夾裡的 captions.srt，套用外部的修改")
+                Button {
                     store.openCaptionFolder()
                 } label: {
                     Label("校正資料夾", systemImage: "folder.badge.gearshape")

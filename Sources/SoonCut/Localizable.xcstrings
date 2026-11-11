@@ -208,6 +208,16 @@
         }
       }
     },
+    "captions.srt 沒有新的修改" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No new changes in captions.srt"
+          }
+        }
+      }
+    },
     "一次付費，永久有效" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3264,6 +3274,16 @@
         }
       }
     },
+    "重新整理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh"
+          }
+        }
+      }
+    },
     "重新產生" : {
       "localizations" : {
         "en" : {
@@ -3300,6 +3320,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Regenerating replaces the current captions and your edits"
+          }
+        }
+      }
+    },
+    "重新讀取字幕校正資料夾裡的 captions.srt，套用外部的修改" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-read captions.srt in the proofreading folder and apply outside edits"
           }
         }
       }

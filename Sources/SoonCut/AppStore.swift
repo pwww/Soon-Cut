@@ -810,9 +810,42 @@ final class AppStore: ObservableObject {
         guard text != lastSyncedSRT else { return }
         lastSyncedSRT = text
         try? text.write(to: CaptionWorkspace.srtURL, atomically: true, encoding: .utf8)
+        lastCaptionModified = captionFileModified()
+    }
+
+    /// 「重新整理」按鈕：立刻讀一次 captions.srt
+    func reloadCaptionFile() {
+        let changed = captionFileChanged()
+        if changed == 0 {
+            captionNote = String(localized: "captions.srt 沒有新的修改")
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(3))
+                if self?.captionNote == String(localized: "captions.srt 沒有新的修改") { self?.captionNote = nil }
+            }
+        }
+    }
+
+    private var captionPollTimer: Timer?
+    private var lastCaptionModified: Date?
+
+    private func captionFileModified() -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: CaptionWorkspace.srtURL.path))?[.modificationDate] as? Date
     }
 
     private func watchCaptionFolder() {
+        // 有些編輯器是直接覆寫檔案內容（不是換一個新檔），資料夾不會發出通知，
+        // 所以另外每 2 秒看一次檔案的修改時間
+        lastCaptionModified = captionFileModified()
+        captionPollTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let modified = self.captionFileModified()
+                if modified != self.lastCaptionModified {
+                    self.lastCaptionModified = modified
+                    self.captionFileChanged()
+                }
+            }
+        }
         let fd = open(CaptionWorkspace.dir.path, O_EVTONLY)
         guard fd >= 0 else { return }
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename],
@@ -826,12 +859,13 @@ final class AppStore: ObservableObject {
     }
 
     /// captions.srt 被外部改過：只套用文字，時間軸與句數以 App 為準
-    private func captionFileChanged() {
+    @discardableResult
+    private func captionFileChanged() -> Int {
         guard !isTranscribing,
               let text = try? String(contentsOf: CaptionWorkspace.srtURL, encoding: .utf8),
-              text != lastSyncedSRT else { return }
+              text != lastSyncedSRT else { return 0 }
         let parsed = SRTWriter.parse(text)
-        guard !parsed.isEmpty, !subtitles.isEmpty else { return }
+        guard !parsed.isEmpty, !subtitles.isEmpty else { return 0 }
         lastSyncedSRT = text
 
         var changed = 0
@@ -854,13 +888,14 @@ final class AppStore: ObservableObject {
                 if let i = subtitles.firstIndex(where: { abs($0.start - p.start) < 0.15 }) { apply(i, p.text) }
             }
         }
-        guard changed > 0 else { return }
+        guard changed > 0 else { return 0 }
         saveSubtitles()
         captionNote = String(localized: "已從字幕校正資料夾套用 \(changed) 句修正")
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(5))
             self?.captionNote = nil
         }
+        return changed
     }
 
     // MARK: - 用字幕剪影片：刪掉一句＝把那段畫面與聲音從片段剪掉
