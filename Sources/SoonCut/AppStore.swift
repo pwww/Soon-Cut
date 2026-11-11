@@ -157,6 +157,10 @@ final class AppStore: ObservableObject {
         refreshFrame()
         loadClips()
         loadSubtitles()
+        CaptionWorkspace.ensureFiles()
+        captionFileChanged()          // 關著 App 時在外面改過的話，先套回來
+        syncCaptionFile()
+        watchCaptionFolder()
         exports = OutputLibrary.load()
         OutputLibrary.trashOrphanTranscripts()
         watchExportsFolder()
@@ -340,6 +344,7 @@ final class AppStore: ObservableObject {
         guard let i = clips.firstIndex(where: { $0.id == clipID }) else { return }
         let cleaned = ClipStorage.sanitize(ranges, duration: clips[i].duration)
         guard !cleaned.isEmpty else { return }
+        lastCut = nil   // 手動剪過就不能再用「復原剪掉」，避免把這次的修改蓋掉
         let startChanged = abs(clips[i].trimStart - cleaned[0].start) > 0.05
         clips[i].ranges = cleaned
         ClipStorage.saveLibrary(clips)
@@ -474,6 +479,7 @@ final class AppStore: ObservableObject {
     /// 移進／移出暫存區。移回使用中時放在最後面
     func setStaged(_ id: UUID, _ staged: Bool) {
         guard let i = clips.firstIndex(where: { $0.id == id }), clips[i].isStaged != staged else { return }
+        lastCut = nil
         var clip = clips.remove(at: i)
         clip.isStaged = staged
         if staged {
@@ -503,6 +509,7 @@ final class AppStore: ObservableObject {
 
     func transcribeSequence() {
         guard !isTranscribing, !activeClips.isEmpty else { return }
+        lastCut = nil
         let key = sequenceKey
         let currentClips = activeClips
         Task {
@@ -737,6 +744,182 @@ final class AppStore: ObservableObject {
         if let data = try? JSONEncoder().encode(file) {
             try? data.write(to: subtitlesURL, options: .atomic)
         }
+        syncCaptionFile()
+    }
+
+    // MARK: - 字幕校正資料夾（給本機 LLM 改字）
+
+    /// 最後一次跟 captions.srt 同步的內容；拿來分辨「自己寫的」和「外面改的」
+    private var lastSyncedSRT: String?
+    private var captionWatcher: DispatchSourceFileSystemObject?
+    /// 從資料夾套用修正後的短暫提示
+    @Published var captionNote: String?
+
+    func openCaptionFolder() {
+        CaptionWorkspace.ensureFiles()
+        syncCaptionFile()
+        Self.revealInFinder(CaptionWorkspace.srtURL)
+    }
+
+    /// 把目前字幕寫成 captions.srt（內容沒變就不寫）
+    private func syncCaptionFile() {
+        let text = SRTWriter.srt(from: subtitles)
+        guard text != lastSyncedSRT else { return }
+        lastSyncedSRT = text
+        try? text.write(to: CaptionWorkspace.srtURL, atomically: true, encoding: .utf8)
+    }
+
+    private func watchCaptionFolder() {
+        let fd = open(CaptionWorkspace.dir.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename],
+                                                               queue: .main)
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.captionFileChanged() }
+        }
+        source.setCancelHandler { close(fd) }
+        source.resume()
+        captionWatcher = source
+    }
+
+    /// captions.srt 被外部改過：只套用文字，時間軸與句數以 App 為準
+    private func captionFileChanged() {
+        guard !isTranscribing,
+              let text = try? String(contentsOf: CaptionWorkspace.srtURL, encoding: .utf8),
+              text != lastSyncedSRT else { return }
+        let parsed = SRTWriter.parse(text)
+        guard !parsed.isEmpty, !subtitles.isEmpty else { return }
+        lastSyncedSRT = text
+
+        var changed = 0
+        func apply(_ i: Int, _ newText: String) {
+            let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, subtitles[i].text != trimmed else { return }
+            let old = subtitles[i].text
+            subtitles[i].text = trimmed
+            // 沒有翻譯（字幕＝原文）時，原文也一起改，之後切換語言才不會把修正蓋掉
+            if let k = sourceSubtitles.firstIndex(where: { $0.id == subtitles[i].id }), sourceSubtitles[k].text == old {
+                sourceSubtitles[k].text = trimmed
+            }
+            changed += 1
+        }
+        if parsed.count == subtitles.count {
+            for (i, p) in parsed.enumerated() { apply(i, p.text) }
+        } else {
+            // 句數對不上：用開始時間配對，配不到的略過
+            for p in parsed {
+                if let i = subtitles.firstIndex(where: { abs($0.start - p.start) < 0.15 }) { apply(i, p.text) }
+            }
+        }
+        guard changed > 0 else { return }
+        saveSubtitles()
+        captionNote = String(localized: "已從字幕校正資料夾套用 \(changed) 句修正")
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(5))
+            self?.captionNote = nil
+        }
+    }
+
+    // MARK: - 用字幕剪影片：刪掉一句＝把那段畫面與聲音從片段剪掉
+
+    struct CutUndo {
+        let clips: [Clip]
+        let subtitles: [SubtitleSegment]
+        let sourceSubtitles: [SubtitleSegment]
+        let subtitlesKey: String?
+        let text: String
+    }
+    @Published private(set) var lastCut: CutUndo?
+
+    var canCutBySubtitle: Bool { !subtitlesOutdated && !isTranscribing && !isExporting && !subtitles.isEmpty }
+
+    func cutSentence(id: UUID) {
+        guard canCutBySubtitle, let seg = subtitles.first(where: { $0.id == id }) else { return }
+        cutSequence(from: seg.start, to: seg.end, label: seg.text)
+    }
+
+    /// 把全片時間軸上的 [from, to) 從各片段的黃色區段剪掉，字幕跟著往前移
+    func cutSequence(from a: Double, to b: Double, label: String) {
+        guard b - a > 0.05 else { return }
+        let snapshot = CutUndo(clips: clips, subtitles: subtitles, sourceSubtitles: sourceSubtitles,
+                               subtitlesKey: subtitlesKey, text: label)
+        let wasInSync = !subtitlesOutdated
+        let minLen = ClipStorage.minClipLength
+
+        var removed: [ClipRange] = []          // 全片時間軸上實際剪掉的區間
+        var newRanges: [UUID: [ClipRange]] = [:]
+        var cursor = 0.0
+        for clip in activeClips {
+            var kept: [ClipRange] = []
+            for r in clip.ranges {
+                let segStart = cursor
+                let segEnd = cursor + r.length
+                cursor = segEnd
+                let os = max(a, segStart), oe = min(b, segEnd)
+                guard oe - os > 0.01 else { kept.append(r); continue }
+                var cutS = r.start + (os - segStart)
+                var cutE = r.start + (oe - segStart)
+                // 剩下的頭尾太短（不到最短長度）就一起剪掉，時間才算得準
+                if cutS - r.start < minLen { cutS = r.start }
+                if r.end - cutE < minLen { cutE = r.end }
+                if cutS > r.start { kept.append(ClipRange(start: r.start, end: cutS)) }
+                if cutE < r.end { kept.append(ClipRange(start: cutE, end: r.end)) }
+                removed.append(ClipRange(start: segStart + (cutS - r.start), end: segStart + (cutE - r.start)))
+            }
+            newRanges[clip.id] = kept
+        }
+        guard !removed.isEmpty else { return }
+
+        // 套用到片段；整段都被剪掉的片段移到暫存區（不刪檔）
+        for (id, kept) in newRanges {
+            guard let i = clips.firstIndex(where: { $0.id == id }) else { continue }
+            if kept.isEmpty {
+                clips[i].isStaged = true
+            } else if kept != clips[i].ranges {
+                clips[i].ranges = kept
+            }
+        }
+        // 暫存的片段排到最後，維持原本的排列規則
+        clips = clips.filter { !$0.isStaged } + clips.filter { $0.isStaged }
+        ClipStorage.saveLibrary(clips)
+
+        // 字幕：被剪掉的句子拿掉，後面的往前移
+        func shift(_ t: Double) -> Double {
+            var total = 0.0
+            for iv in removed {
+                if t >= iv.end { total += iv.length }
+                else if t > iv.start { return iv.start - total }
+                else { break }
+            }
+            return t - total
+        }
+        func remap(_ list: [SubtitleSegment]) -> [SubtitleSegment] {
+            list.compactMap { seg in
+                let inside = removed.contains { seg.start >= $0.start - 0.05 && seg.end <= $0.end + 0.05 }
+                if inside { return nil }
+                var s = seg
+                s.start = shift(seg.start)
+                s.end = shift(seg.end)
+                return s.end - s.start >= 0.15 ? s : nil
+            }
+        }
+        subtitles = remap(subtitles)
+        sourceSubtitles = remap(sourceSubtitles)
+        if wasInSync { subtitlesKey = sequenceKey }
+        saveSubtitles()
+        lastCut = snapshot
+        for id in newRanges.keys { refreshThumbnail(id) }
+    }
+
+    func undoCut() {
+        guard let undo = lastCut else { return }
+        clips = undo.clips
+        ClipStorage.saveLibrary(clips)
+        subtitles = undo.subtitles
+        sourceSubtitles = undo.sourceSubtitles
+        subtitlesKey = undo.subtitlesKey
+        saveSubtitles()
+        lastCut = nil
     }
 
     private func loadSubtitles() {

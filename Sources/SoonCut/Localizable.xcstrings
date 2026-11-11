@@ -188,6 +188,16 @@
     "Soon-Cut %@" : {
       "shouldTranslate" : false
     },
+    "captions.srt 會一直跟著字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "captions.srt always mirrors your captions. Point a local LLM at this folder to fix terms, names and typos — when it saves, Soon-Cut applies the changes automatically"
+          }
+        }
+      }
+    },
     "一次付費，永久有效" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -800,6 +810,16 @@
         }
       }
     },
+    "只刪掉這句字幕，影片不變" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove only this caption; the video stays the same"
+          }
+        }
+      }
+    },
     "只剪了一點點、字幕時間差不多時可以沿用" : {
       "localizations" : {
         "en" : {
@@ -1102,6 +1122,16 @@
         }
       }
     },
+    "字幕跟目前的片段對不上，先重新產生字幕才能用字幕剪影片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captions don't match the current clips — regenerate them to cut the video by caption"
+          }
+        }
+      }
+    },
     "字色" : {
       "localizations" : {
         "en" : {
@@ -1244,6 +1274,26 @@
         }
       }
     },
+    "已從字幕校正資料夾套用 %lld 句修正" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applied %lld fixes from the proofreading folder"
+          }
+        }
+      }
+    },
+    "已從影片剪掉「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cut “%@” from the video"
+          }
+        }
+      }
+    },
     "已移除浮水印" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1354,6 +1404,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "往後移"
+          }
+        }
+      }
+    },
+    "從影片剪掉這一句（畫面和聲音都會剪掉，可以復原）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cut this line from the video (picture and sound; you can undo)"
+          }
+        }
+      }
+    },
+    "復原" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
           }
         }
       }
@@ -1794,6 +1864,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最新"
+          }
+        }
+      }
+    },
+    "校正資料夾" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofreading Folder"
           }
         }
       }

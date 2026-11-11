@@ -40,7 +40,7 @@ struct SubtitleEditor: View {
                     Divider()
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("字幕稿").font(.headline)
+                        transcriptHeader
                         subtitleList
                     }
                     .frame(width: min(440, max(300, width * 0.36)))
@@ -49,6 +49,7 @@ struct SubtitleEditor: View {
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     controls
+                    transcriptHeader
                     subtitleList
                 }
             }
@@ -339,6 +340,42 @@ struct SubtitleEditor: View {
 
     // MARK: 字幕清單
 
+    private var transcriptHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text("字幕稿").font(.headline)
+                Spacer()
+                Button {
+                    store.openCaptionFolder()
+                } label: {
+                    Label("校正資料夾", systemImage: "folder.badge.gearshape")
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .help("captions.srt 會一直跟著字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來")
+            }
+            if let note = store.captionNote {
+                Label(note, systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            }
+            if let cut = store.lastCut {
+                HStack(spacing: 6) {
+                    Image(systemName: "scissors")
+                    Text("已從影片剪掉「\(cut.text)」")
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 4)
+                    Button("復原") { store.undoCut() }
+                        .controlSize(.small)
+                }
+                .font(.caption)
+                .padding(6)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.12)))
+            }
+        }
+    }
+
     private var subtitleList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 4) {
@@ -442,13 +479,24 @@ struct SubtitleRow: View {
             .font(.callout)
 
             Button {
+                store.cutSentence(id: segment.id)
+            } label: {
+                Image(systemName: "scissors")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .disabled(!store.canCutBySubtitle)
+            .help(store.subtitlesOutdated ? "字幕跟目前的片段對不上，先重新產生字幕才能用字幕剪影片"
+                                          : "從影片剪掉這一句（畫面和聲音都會剪掉，可以復原）")
+
+            Button {
                 store.deleteSubtitle(id: segment.id)
             } label: {
                 Image(systemName: "xmark.circle")
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            .help("刪除這一句")
+            .help("只刪掉這句字幕，影片不變")
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)

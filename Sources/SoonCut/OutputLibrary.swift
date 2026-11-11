@@ -98,8 +98,86 @@ enum SRTWriter {
         try text.write(to: url(for: video), atomically: true, encoding: .utf8)
     }
 
+    /// 讀 SRT：回傳每一句的時間與文字（容許 , 或 . 當毫秒分隔、CRLF、檔頭 BOM）
+    static func parse(_ text: String) -> [(start: Double, end: Double, text: String)] {
+        let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\u{FEFF}", with: "")
+        var result: [(start: Double, end: Double, text: String)] = []
+        for block in normalized.components(separatedBy: "\n\n") {
+            let lines = block.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+            guard let t = lines.firstIndex(where: { $0.contains("-->") }) else { continue }
+            let parts = lines[t].components(separatedBy: "-->")
+            guard parts.count == 2,
+                  let start = seconds(parts[0]), let end = seconds(parts[1]) else { continue }
+            let body = lines[(t + 1)...].joined(separator: "\n").trimmingCharacters(in: .whitespaces)
+            result.append((start, end, body))
+        }
+        return result
+    }
+
+    private static func seconds(_ s: String) -> Double? {
+        let clean = s.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        let hms = clean.split(separator: ":")
+        guard hms.count == 3, let h = Double(hms[0]), let m = Double(hms[1]), let sec = Double(hms[2]) else { return nil }
+        return h * 3600 + m * 60 + sec
+    }
+
     private static func timestamp(_ t: Double) -> String {
         let ms = Int((max(0, t) * 1000).rounded())
         return String(format: "%02d:%02d:%02d,%03d", ms / 3_600_000, (ms / 60_000) % 60, (ms / 1000) % 60, ms % 1000)
     }
+}
+
+// MARK: - 字幕校正資料夾：產生字幕後自動放一份 SRT，讓本機 LLM 校正後存回來
+
+/// ~/Movies/Soon-Cut/Captions/
+///   captions.srt   目前字幕（時間對應「全片」）；外部改完存檔，Soon-Cut 會自動套回
+///   README.md      給 LLM 的校正規則
+///   glossary.md    使用者自己的術語、人名清單（不會被覆蓋）
+enum CaptionWorkspace {
+    static var dir: URL {
+        let dir = ClipStorage.rootDir.appendingPathComponent("Captions", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+    static var srtURL: URL { dir.appendingPathComponent("captions.srt") }
+    static var readmeURL: URL { dir.appendingPathComponent("README.md") }
+    static var glossaryURL: URL { dir.appendingPathComponent("glossary.md") }
+
+    static func ensureFiles() {
+        try? readme.write(to: readmeURL, atomically: true, encoding: .utf8)
+        if !FileManager.default.fileExists(atPath: glossaryURL.path) {
+            try? glossary.write(to: glossaryURL, atomically: true, encoding: .utf8)
+        }
+    }
+
+    static let readme = """
+    # Soon-Cut 字幕校正資料夾 / Caption proofreading folder
+
+    `captions.srt` 是 Soon-Cut 目前的字幕。請校正後**直接存回同一個檔案**，Soon-Cut 會自動套用。
+    `captions.srt` holds Soon-Cut's current captions. Fix it and **save it back to the same file** — Soon-Cut applies the changes automatically.
+
+    ## 請修正 / Please fix
+    - 錯別字、同音字、斷詞錯誤（語音辨識常見）／typos and sound-alike errors from speech recognition
+    - 人名、地名、品牌、專有名詞、術語（可上網查證正確寫法）／names, places, brands and technical terms (look them up if needed)
+    - 不通順或前後邏輯對不上的用字／wording that doesn't make sense in context
+    - 參考 `glossary.md` 裡的術語與人名／use the terms and names in `glossary.md`
+
+    ## 請不要 / Please don't
+    - 改編號或時間軸 `00:00:00,000 --> ...`／change the numbers or timestamps
+    - 合併、拆分、新增或刪除句子（句數要一樣）／merge, split, add or remove lines (keep the same count)
+    - 加上說明文字或 Markdown／add notes or Markdown to the SRT
+
+    要從影片剪掉某一句，請回到 Soon-Cut 按那一句旁邊的剪刀。
+    To cut a line out of the video, use the scissors next to it in Soon-Cut.
+    """
+
+    static let glossary = """
+    # 術語與人名 / Glossary
+
+    在這裡寫下影片會出現的正確寫法，LLM 校正時會參考。這個檔案不會被 Soon-Cut 覆蓋。
+    List the correct spellings that appear in your videos. Soon-Cut never overwrites this file.
+
+    - 
+    """
 }
