@@ -43,7 +43,7 @@ struct ClipEditor: View {
                 onScrub: { t in
                     player.pause()
                     currentTime = t
-                    player.seek(to: cmTime(t), toleranceBefore: .zero, toleranceAfter: .zero)
+                    player.seek(to: cmTime(toPlayer(t)), toleranceBefore: .zero, toleranceAfter: .zero)
                 },
                 onCommit: {
                     store.setRanges(clipID: clip.id, draftRanges)
@@ -106,7 +106,7 @@ struct ClipEditor: View {
             reload()
             addObserver()
         }
-        .onChange(of: clip.speed) { applySpeed() }
+        .onChange(of: clip.speed) { reload(keepPosition: true) }
         .onChange(of: clip.id) { reload() }
         .onChange(of: clip.ranges) {
             // 剪開、刪除、還原後同步
@@ -131,36 +131,63 @@ struct ClipEditor: View {
         }
     }
 
-    private func reload() {
+    // 播放器的時間是「變速後」的時間（播放器的時間軸、長度顯示都會跟著速度）；
+    // 膠卷條、剪開、黃色區段用的是原始影片時間。兩者用速度換算。
+    private var speed: Double { max(clip.speed, 0.1) }
+    private func toPlayer(_ source: Double) -> Double { source / speed }
+    private func fromPlayer(_ shown: Double) -> Double { shown * speed }
+
+    private func reload(keepPosition: Bool = false) {
         draftRanges = clip.ranges
-        let item = AVPlayerItem(url: clip.url)
-        item.audioTimePitchAlgorithm = .spectral   // 變速時保持音高
-        player.replaceCurrentItem(with: item)
-        applySpeed()
+        let resumeAt = currentTime
+        let wasPlaying = player.rate != 0
+        player.pause()
+        player.replaceCurrentItem(with: makeItem())
         applyRangesToPlayer()
-        seek(to: draftRanges.first?.start ?? 0)
+        if keepPosition, draftRanges.contains(where: { resumeAt >= $0.start && resumeAt < $0.end }) {
+            seek(to: resumeAt)
+        } else {
+            seek(to: draftRanges.first?.start ?? 0)
+        }
+        if wasPlaying && keepPosition { player.play() }
     }
 
-    /// 播放鍵用 defaultRate，所以按播放就會是這個片段的速度
-    private func applySpeed() {
-        let rate = Float(clip.speed)
-        player.defaultRate = rate
-        if player.rate != 0 { player.rate = rate }
+    /// 原速直接播檔案；變速時把整個檔案包成一條縮放過的時間軸，預覽就是變速後的樣子
+    private func makeItem() -> AVPlayerItem {
+        let asset = AVURLAsset(url: clip.url)
+        guard abs(clip.speed - 1) > 0.001 else { return AVPlayerItem(asset: asset) }
+        let composition = AVMutableComposition()
+        let full = CMTimeRange(start: .zero, duration: cmTime(clip.duration))
+        do {
+            try composition.insertTimeRange(full, of: asset, at: .zero)
+            // 保留原影片的方向（直拍、旋轉過的匯入影片）
+            for track in composition.tracks(withMediaType: .video) {
+                if let source = asset.tracks(withMediaType: .video).first {
+                    track.preferredTransform = source.preferredTransform
+                }
+            }
+            composition.scaleTimeRange(full, toDuration: cmTime(clip.duration / speed))
+        } catch {
+            return AVPlayerItem(asset: asset)
+        }
+        let item = AVPlayerItem(asset: composition)
+        item.audioTimePitchAlgorithm = .spectral   // 變速時保持音高
+        return item
     }
 
     private func applyRangesToPlayer() {
-        player.currentItem?.forwardPlaybackEndTime = cmTime(draftRanges.last?.end ?? clip.duration)
+        player.currentItem?.forwardPlaybackEndTime = cmTime(toPlayer(draftRanges.last?.end ?? clip.duration))
     }
 
     private func seek(to t: Double) {
         currentTime = t
-        player.seek(to: cmTime(t), toleranceBefore: .zero, toleranceAfter: .zero)
+        player.seek(to: cmTime(toPlayer(t)), toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
     private func addObserver() {
         guard timeObserver == nil else { return }
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { t in
-            let now = CMTimeGetSeconds(t)
+            let now = fromPlayer(CMTimeGetSeconds(t))
             currentTime = now
             skipGapIfNeeded(at: now)
         }
