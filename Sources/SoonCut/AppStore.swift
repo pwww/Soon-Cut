@@ -78,7 +78,10 @@ final class AppStore: ObservableObject {
 
     // MARK: 片段
     @Published var clips: [Clip] = [] {
-        didSet { pruneUnrelatedSubtitles() }
+        didSet {
+            pruneUnrelatedSubtitles()
+            restoreStashedSubtitles()
+        }
     }
     @Published var selectedClipID: UUID?
     @Published var previewMode: PreviewMode = .clip
@@ -736,8 +739,36 @@ final class AppStore: ObservableObject {
         })
         let currentFiles = Set(activeClips.map { $0.url.lastPathComponent })
         if subtitleFiles.isDisjoint(with: currentFiles) {
+            stashCurrentSubtitles()   // 先收起來，片段拉回來時可以還原
             clearSubtitles()
         }
+    }
+
+    // MARK: 字幕暫存：片段拉去暫存區時字幕先收起來，原樣拉回來就還原（不用重新產生、校正也不會不見）
+
+    private var stashURL: URL { ClipStorage.rawDir.appendingPathComponent("subtitle-stash.json") }
+    private lazy var subtitleStash: [String: SubtitleFile] = {
+        guard let data = try? Data(contentsOf: stashURL),
+              let stash = try? JSONDecoder().decode([String: SubtitleFile].self, from: data) else { return [:] }
+        return stash
+    }()
+
+    private func stashCurrentSubtitles() {
+        guard let key = subtitlesKey, !key.isEmpty, !subtitles.isEmpty else { return }
+        subtitleStash[key] = SubtitleFile(sequenceKey: key, segments: subtitles,
+                                          sourceSegments: sourceSubtitles, spokenLanguage: spokenLanguage)
+        if subtitleStash.count > 20, let oldest = subtitleStash.keys.first { subtitleStash[oldest] = nil }
+        if let data = try? JSONEncoder().encode(subtitleStash) { try? data.write(to: stashURL, options: .atomic) }
+    }
+
+    private func restoreStashedSubtitles() {
+        guard subtitles.isEmpty, !isTranscribing, !activeClips.isEmpty,
+              let file = subtitleStash[sequenceKey] else { return }
+        subtitles = file.segments
+        sourceSubtitles = file.sourceSegments ?? file.segments
+        spokenLanguage = file.spokenLanguage
+        subtitlesKey = file.sequenceKey
+        saveSubtitles()
     }
 
     func clearSubtitles() {

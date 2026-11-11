@@ -23,6 +23,21 @@ struct ClipEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if clip.isStaged {
+                // 暫存區的片段不會出現在「全片」；改速度、剪輯都只影響它自己
+                HStack(spacing: 8) {
+                    Image(systemName: "tray.and.arrow.down.fill")
+                    Text("這個片段在暫存區，不會放進「全片」的預覽與輸出。")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("加回預排片段") { store.setStaged(clip.id, false) }
+                }
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .controlSize(.small)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.12)))
+            }
             PreviewHeader(collapsed: $previewCollapsed)
             if !previewCollapsed {
                 PlayerView(player: player)

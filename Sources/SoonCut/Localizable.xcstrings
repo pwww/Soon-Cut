@@ -757,6 +757,16 @@
         }
       }
     },
+    "加回預排片段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Back to This Edit"
+          }
+        }
+      }
+    },
     "匯入" : {
       "localizations" : {
         "en" : {
@@ -2973,6 +2983,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "轉寫字幕"
+          }
+        }
+      }
+    },
+    "這個片段在暫存區，不會放進「全片」的預覽與輸出。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This clip is set aside, so it isn't in the All preview or the export."
           }
         }
       }

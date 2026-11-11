@@ -434,6 +434,8 @@ struct SubtitleEditor: View {
         }
         do {
             let result = try await Composer.build(clips: clips)
+            // 片段在合成途中又改了：這個結果已經過時，交給新的那次重建，免得舊畫面蓋掉新的
+            if Task.isCancelled { return }
             let newCanvas = store.outputFormat.canvas(base: result.renderSize)
             canvas = newCanvas
             duration = result.duration
