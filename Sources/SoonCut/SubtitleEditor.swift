@@ -377,7 +377,7 @@ struct SubtitleEditor: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
-                .help("重新讀取字幕校正資料夾裡的 captions.srt，套用外部的修改")
+                .help(String(localized: "重新讀取字幕校正資料夾裡的「\(store.captionFileName)」，套用外部的修改"))
                 Button {
                     store.openCaptionFolder()
                 } label: {
@@ -385,7 +385,7 @@ struct SubtitleEditor: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
-                .help("captions.srt 會一直跟著字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來")
+                .help(String(localized: "「\(store.captionFileName)」會一直跟著這個專案的字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來"))
             }
             ProofreadGuide()
             if let note = store.captionNote {
@@ -809,19 +809,21 @@ struct ExportPreview: View {
 // MARK: - 用 LLM 校正字幕：說明＋可直接複製的 prompts（可收合）
 
 struct ProofreadGuide: View {
+    @EnvironmentObject var store: AppStore
     @AppStorage("proofreadGuideExpanded") private var expanded = false
     @State private var copiedIndex: Int?
 
     private var prompts: [(title: String, text: String)] {
-        [
+        let file = store.captionFileName
+        return [
             (String(localized: "快速校正"),
-             String(localized: "照 README 校正 captions.srt，存回原檔")),
+             String(localized: "照 README 校正「\(file)」，存回原檔")),
             (String(localized: "完整校正（附修改清單）"),
-             String(localized: "讀這個資料夾的 README.md 和 glossary.md，校正 captions.srt 的錯別字、同音字、人名、機構與專有名詞（不確定的請上網查證）。不要改編號、時間軸和句數。改完直接存回 captions.srt，最後列出你改了哪些句子，以及沒把握所以沒改的地方。")),
+             String(localized: "讀這個資料夾的 README.md 和 glossary.md，校正「\(file)」的錯別字、同音字、人名、機構與專有名詞（不確定的請上網查證）。不要改編號、時間軸和句數。改完直接存回「\(file)」，最後列出你改了哪些句子，以及沒把握所以沒改的地方。")),
             (String(localized: "整理術語表"),
-             String(localized: "讀 captions.srt，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。")),
+             String(localized: "讀「\(file)」，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。")),
             (String(localized: "寫社群貼文"),
-             String(localized: "讀 captions.srt，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。")),
+             String(localized: "讀「\(file)」，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。")),
         ]
     }
 

@@ -129,19 +129,36 @@ enum SRTWriter {
     }
 }
 
-// MARK: - 字幕校正資料夾：產生字幕後自動放一份 SRT，讓本機 LLM 校正後存回來
+// MARK: - 字幕校正資料夾：每個專案一份 SRT，讓本機 LLM 校正後存回來
 
 /// ~/Movies/Soon-Cut/Captions/
-///   captions.srt   目前字幕（時間對應「全片」）；外部改完存檔，Soon-Cut 會自動套回
-///   README.md      給 LLM 的校正規則
-///   glossary.md    使用者自己的術語、人名清單（不會被覆蓋）
+///   <專案名稱>.srt  各專案的字幕（時間對應該專案的「全片」）；外部改完存檔，打開那個專案時會套回
+///   README.md       給 LLM 的校正規則
+///   glossary.md     使用者自己的術語、人名清單（不會被覆蓋）
 enum CaptionWorkspace {
     static var dir: URL {
         let dir = ClipStorage.rootDir.appendingPathComponent("Captions", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
-    static var srtURL: URL { dir.appendingPathComponent("captions.srt") }
+
+    /// 專案的校正檔：用專案名稱當檔名（去掉檔名不能用的字元）；同名專案加上編號區分
+    static func fileName(for project: ProjectInfo, among all: [ProjectInfo]) -> String {
+        var base = project.name
+            .replacingOccurrences(of: "[/\\\\:*?\"<>|]", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if base.isEmpty { base = String(localized: "專案") }
+        let sameName = all.filter { $0.name == project.name }
+        if sameName.count > 1 {
+            base += "-" + String(project.id.uuidString.prefix(4))
+        }
+        return base + ".srt"
+    }
+
+    static func fileURL(for project: ProjectInfo, among all: [ProjectInfo]) -> URL {
+        dir.appendingPathComponent(fileName(for: project, among: all))
+    }
+
     static var readmeURL: URL { dir.appendingPathComponent("README.md") }
     static var glossaryURL: URL { dir.appendingPathComponent("glossary.md") }
 
@@ -155,8 +172,8 @@ enum CaptionWorkspace {
     static let readme = """
     # Soon-Cut 字幕校正資料夾 / Caption proofreading folder
 
-    `captions.srt` 是 Soon-Cut 目前的字幕。請校正後**直接存回同一個檔案**，Soon-Cut 會自動套用。
-    `captions.srt` holds Soon-Cut's current captions. Fix it and **save it back to the same file** — Soon-Cut applies the changes automatically.
+    每個 `.srt` 是一個 Soon-Cut 專案的字幕，檔名就是專案名稱（例如 `市民大道.srt`）。請校正後**直接存回同一個檔案**，Soon-Cut 會自動套用到那個專案；同時校正好幾個專案也不會互相影響。
+    Each `.srt` holds one Soon-Cut project's captions, named after the project (e.g. `Demo.srt`). Fix it and **save it back to the same file** — Soon-Cut applies the changes to that project. Several projects can be proofread at once without affecting each other.
 
     ## 請修正 / Please fix
     - 錯別字、同音字、斷詞錯誤（語音辨識常見）／typos and sound-alike errors from speech recognition

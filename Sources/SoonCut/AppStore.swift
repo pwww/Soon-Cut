@@ -343,6 +343,12 @@ final class AppStore: ObservableObject {
         currentProjectID = projects.first { $0.id == saved }?.id ?? projects[0].id
         ClipStorage.currentProjectDir = Projects.folder(currentProjectID)
         loadSubtitleStash()
+        // 舊版只有一份 Captions/captions.srt：改名成目前專案的校正檔
+        let legacy = CaptionWorkspace.dir.appendingPathComponent("captions.srt")
+        let fm = FileManager.default
+        if currentProject != nil, fm.fileExists(atPath: legacy.path), !fm.fileExists(atPath: captionFileURL.path) {
+            try? fm.moveItem(at: legacy, to: captionFileURL)
+        }
     }
 
     func switchProject(to id: UUID) {
@@ -368,6 +374,12 @@ final class AppStore: ObservableObject {
         loadSubtitles()
         loadSubtitleStash()
         exports = OutputLibrary.load()
+        // 新專案的校正檔：先當作「跟 App 一致」，再看外面有沒有改過
+        lastSyncedSRT = SRTWriter.srt(from: subtitles)
+        lastCaptionModified = captionFileModified()
+        if FileManager.default.fileExists(atPath: captionFileURL.path) {
+            captionFileChanged()
+        }
         syncCaptionFile()
         Task {
             let loaded = await ClipStorage.loadClips()
@@ -388,9 +400,15 @@ final class AppStore: ObservableObject {
 
     func renameCurrentProject(_ name: String) {
         guard let i = projects.firstIndex(where: { $0.id == currentProjectID }) else { return }
+        let oldURL = captionFileURL
         projects[i].name = name
         projects[i].updatedAt = Date()
         Projects.saveIndex(projects)
+        let newURL = captionFileURL
+        if oldURL != newURL, FileManager.default.fileExists(atPath: oldURL.path) {
+            try? FileManager.default.moveItem(at: oldURL, to: newURL)
+            lastCaptionModified = captionFileModified()
+        }
     }
 
     /// 刪除專案：資料夾丟到垃圾桶；只有這個專案用到的影片檔也一起丟（都可以從垃圾桶救回）
@@ -399,6 +417,7 @@ final class AppStore: ObservableObject {
               !jobs.contains(where: { $0.projectID == currentProjectID }),
               let doomed = projects.first(where: { $0.id == currentProjectID }) else { return }
         let ownFiles = Set(clips.map { $0.url.lastPathComponent })
+        let captionFile = captionFileURL
         let othersUse = Projects.filesUsed(excluding: doomed.id)
         let next = projects.first { $0.id != doomed.id }!
         switchProject(to: next.id)
@@ -406,6 +425,7 @@ final class AppStore: ObservableObject {
         Projects.saveIndex(projects)
         let fm = FileManager.default
         try? fm.trashItem(at: Projects.dir.appendingPathComponent(doomed.id.uuidString), resultingItemURL: nil)
+        if fm.fileExists(atPath: captionFile.path) { try? fm.trashItem(at: captionFile, resultingItemURL: nil) }
         for file in ownFiles.subtracting(othersUse) {
             try? fm.trashItem(at: ClipStorage.rawDir.appendingPathComponent(file), resultingItemURL: nil)
         }
@@ -760,6 +780,10 @@ final class AppStore: ObservableObject {
                 if let data = try? JSONEncoder().encode(file) {
                     try? data.write(to: Projects.folder(projectID).appendingPathComponent("subtitles.json"), options: .atomic)
                 }
+                if let p = projects.first(where: { $0.id == projectID }) {
+                    try? SRTWriter.srt(from: display).write(to: CaptionWorkspace.fileURL(for: p, among: projects),
+                                                            atomically: true, encoding: .utf8)
+                }
             }
         } catch {
             let name = projectName(projectID)
@@ -1008,7 +1032,14 @@ final class AppStore: ObservableObject {
 
     // MARK: - 字幕校正資料夾（給本機 LLM 改字）
 
-    /// 最後一次跟 captions.srt 同步的內容；拿來分辨「自己寫的」和「外面改的」
+    /// 目前專案的校正檔
+    var captionFileURL: URL {
+        guard let p = currentProject else { return CaptionWorkspace.dir.appendingPathComponent("captions.srt") }
+        return CaptionWorkspace.fileURL(for: p, among: projects)
+    }
+    var captionFileName: String { captionFileURL.lastPathComponent }
+
+    /// 最後一次跟目前專案校正檔同步的內容；拿來分辨「自己寫的」和「外面改的」
     private var lastSyncedSRT: String?
     private var captionWatcher: DispatchSourceFileSystemObject?
     /// 從資料夾套用修正後的短暫提示
@@ -1017,26 +1048,26 @@ final class AppStore: ObservableObject {
     func openCaptionFolder() {
         CaptionWorkspace.ensureFiles()
         syncCaptionFile()
-        Self.revealInFinder(CaptionWorkspace.srtURL)
+        Self.revealInFinder(captionFileURL)
     }
 
-    /// 把目前字幕寫成 captions.srt（內容沒變就不寫）
+    /// 把目前字幕寫成目前專案的校正檔（內容沒變就不寫）
     private func syncCaptionFile() {
         let text = SRTWriter.srt(from: subtitles)
         guard text != lastSyncedSRT else { return }
         lastSyncedSRT = text
-        try? text.write(to: CaptionWorkspace.srtURL, atomically: true, encoding: .utf8)
+        try? text.write(to: captionFileURL, atomically: true, encoding: .utf8)
         lastCaptionModified = captionFileModified()
     }
 
-    /// 「重新整理」按鈕：立刻讀一次 captions.srt
+    /// 「重新整理」按鈕：立刻讀一次目前專案的校正檔
     func reloadCaptionFile() {
         let changed = captionFileChanged()
         if changed == 0 {
-            captionNote = String(localized: "captions.srt 沒有新的修改")
+            captionNote = String(localized: "\(captionFileName) 沒有新的修改")
             Task { [weak self] in
                 try? await Task.sleep(for: .seconds(3))
-                if self?.captionNote == String(localized: "captions.srt 沒有新的修改") { self?.captionNote = nil }
+                if self?.captionNote == String(localized: "\(captionFileName) 沒有新的修改") { self?.captionNote = nil }
             }
         }
     }
@@ -1045,7 +1076,7 @@ final class AppStore: ObservableObject {
     private var lastCaptionModified: Date?
 
     private func captionFileModified() -> Date? {
-        (try? FileManager.default.attributesOfItem(atPath: CaptionWorkspace.srtURL.path))?[.modificationDate] as? Date
+        (try? FileManager.default.attributesOfItem(atPath: captionFileURL.path))?[.modificationDate] as? Date
     }
 
     private func watchCaptionFolder() {
@@ -1074,11 +1105,11 @@ final class AppStore: ObservableObject {
         captionWatcher = source
     }
 
-    /// captions.srt 被外部改過：只套用文字，時間軸與句數以 App 為準
+    /// 校正檔被外部改過：只套用文字，時間軸與句數以 App 為準
     @discardableResult
     private func captionFileChanged() -> Int {
         guard !isTranscribing,
-              let text = try? String(contentsOf: CaptionWorkspace.srtURL, encoding: .utf8),
+              let text = try? String(contentsOf: captionFileURL, encoding: .utf8),
               text != lastSyncedSRT else { return 0 }
         let parsed = SRTWriter.parse(text)
         guard !parsed.isEmpty, !subtitles.isEmpty else { return 0 }

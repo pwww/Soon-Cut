@@ -47,6 +47,16 @@
         }
       }
     },
+    "%@ 沒有新的修改" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No new changes in %@"
+          }
+        }
+      }
+    },
     "%@－片段" : {
       "localizations" : {
         "en" : {
@@ -224,6 +234,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No new changes in captions.srt"
+          }
+        }
+      }
+    },
+    "「%@」會一直跟著這個專案的字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” always mirrors this project's captions. Point a local LLM at this folder to fix terms, names and typos — when it saves, Soon-Cut applies the changes"
           }
         }
       }
@@ -603,6 +623,7 @@
       }
     },
     "使用 macOS 內建的本機翻譯，不會上傳。第一次翻譯某種語言時，系統會請你下載語言包。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2627,6 +2648,16 @@
         }
       }
     },
+    "照 README 校正「%@」，存回原檔" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofread “%@” following README.md and save it back to the same file."
+          }
+        }
+      }
+    },
     "片段在轉寫後有變動，舊字幕先不套用到預覽和輸出。" : {
       "localizations" : {
         "en" : {
@@ -3035,6 +3066,7 @@
       }
     },
     "翻譯成%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3200,6 +3232,26 @@
         }
       }
     },
+    "讀「%@」，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read “%@” and write a Threads post: a hook in the first line, three key points, and a closing question. Under 500 characters, conversational tone."
+          }
+        }
+      }
+    },
+    "讀「%@」，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read “%@” and list the correct spellings of the people, organizations, places and technical terms in the video. Append them to glossary.md, keeping what's already there."
+          }
+        }
+      }
+    },
     "讀取中斷" : {
       "localizations" : {
         "en" : {
@@ -3222,6 +3274,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read README.md and glossary.md in this folder, then fix typos, sound-alike errors, names, organizations and technical terms in captions.srt (look things up if unsure). Don't change the numbers, timestamps or line count. Save it back to captions.srt, then list the lines you changed and anything you weren't sure about and left alone."
+          }
+        }
+      }
+    },
+    "讀這個資料夾的 README.md 和 glossary.md，校正「%@」的錯別字、同音字、人名、機構與專有名詞（不確定的請上網查證）。不要改編號、時間軸和句數。改完直接存回「%@」，最後列出你改了哪些句子，以及沒把握所以沒改的地方。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read README.md and glossary.md in this folder, then fix typos, sound-alike errors, names, organizations and technical terms in “%@” (look things up if unsure). Don't change the numbers, timestamps or line count. Save it back to “%@”, then list the lines you changed and anything you weren't sure about."
           }
         }
       }
@@ -3762,6 +3824,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Re-read captions.srt in the proofreading folder and apply outside edits"
+          }
+        }
+      }
+    },
+    "重新讀取字幕校正資料夾裡的「%@」，套用外部的修改" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-read “%@” in the proofreading folder and apply outside edits"
           }
         }
       }
