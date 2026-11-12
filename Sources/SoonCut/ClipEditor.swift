@@ -10,6 +10,8 @@ struct ClipEditor: View {
 
     @State private var player = AVPlayer()
     @State private var draftRanges: [ClipRange] = []
+    /// 時間軸縮放倍數（1＝整段塞進寬度）
+    @State private var zoom: CGFloat = 1
     @State private var currentTime: Double = 0
     @State private var timeObserver: Any?
     @AppStorage("clipPlayerFraction") private var playerFraction: Double = 0.6
@@ -53,6 +55,7 @@ struct ClipEditor: View {
                 url: clip.url,
                 duration: clip.duration,
                 ranges: $draftRanges,
+                zoom: $zoom,
                 activeIndex: currentRangeIndex,
                 playhead: currentTime,
                 onScrub: { t in
@@ -65,7 +68,7 @@ struct ClipEditor: View {
                     applyRangesToPlayer()
                 }
             )
-            .frame(height: 48)
+            .frame(height: zoom > 1 ? 62 : 48)   // 放大時多留捲軸的位置
             .padding(.horizontal, 6)   // 把手離視窗縮放邊框遠一點
 
             HStack(spacing: 8) {
@@ -127,6 +130,31 @@ struct ClipEditor: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .help("這個片段的播放速度，預覽和輸出都照這個速度（聲音會保持原本音高）")
+
+                Spacer(minLength: 12)
+
+                // 時間軸縮放：細部抓剪輯點（觸控板也可以兩指縮放）
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { zoom = max(1, zoom / 1.5) }
+                } label: { Image(systemName: "minus.magnifyingglass") }
+                .buttonStyle(.borderless)
+                .disabled(zoom <= 1)
+                .help("縮小時間軸")
+                Slider(value: $zoom, in: 1...FilmstripTrimmer.maxZoom)
+                    .frame(width: 90)
+                    .help("時間軸縮放（觸控板兩指捏合也可以）")
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { zoom = min(FilmstripTrimmer.maxZoom, zoom * 1.5) }
+                } label: { Image(systemName: "plus.magnifyingglass") }
+                .buttonStyle(.borderless)
+                .disabled(zoom >= FilmstripTrimmer.maxZoom)
+                .help("放大時間軸")
+                Text(String(format: "%.0f×", zoom))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, alignment: .leading)
+                    .onTapGesture(count: 2) { withAnimation { zoom = 1 } }
+                    .help("雙擊回到整段")
             }
             .controlSize(.small)
         }
@@ -135,7 +163,10 @@ struct ClipEditor: View {
             addObserver()
         }
         .onChange(of: clip.speed) { reload(keepPosition: true) }
-        .onChange(of: clip.id) { reload() }
+        .onChange(of: clip.id) {
+            zoom = 1
+            reload()
+        }
         .onChange(of: clip.ranges) {
             // 剪開、刪除、還原後同步
             draftRanges = clip.ranges
@@ -246,20 +277,77 @@ struct FilmstripTrimmer: View {
     let url: URL
     let duration: Double
     @Binding var ranges: [ClipRange]
+    @Binding var zoom: CGFloat
     var activeIndex: Int?
     var playhead: Double?
     var onScrub: (Double) -> Void
     var onCommit: () -> Void
 
+    static let maxZoom: CGFloat = 20
+
     @State private var frames: [NSImage] = []
-    private let frameCount = 10
+    @State private var scroll = ScrollPosition(edge: .leading)
+    @State private var scrollX: CGFloat = 0
+    @State private var visibleWidth: CGFloat = 0
+    @State private var pinchStart: CGFloat?
+    @State private var dragging = false
     private let handleWidth: CGFloat = 14
+
+    /// 放大越多影格越多（最多 60 張）
+    private var frameCount: Int { min(60, max(10, Int(zoom.rounded()) * 10)) }   // 以 10 張為一級，拖滑桿時不會一直重抓
 
     var body: some View {
         GeometryReader { geo in
-            let width = geo.size.width
-            let height = geo.size.height
+            let visible = geo.size.width
+            let width = visible * zoom
+            let height = geo.size.height - (zoom > 1 ? 14 : 0)
 
+            ScrollView(.horizontal, showsIndicators: zoom > 1) {
+                strip(width: width, height: height)
+                    .frame(width: width, height: height)
+            }
+            .scrollPosition($scroll)
+            .scrollDisabled(zoom <= 1)
+            .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.x } action: { _, x in scrollX = x }
+            .onAppear { visibleWidth = visible }
+            .onChange(of: visible) { visibleWidth = visible }
+            .onChange(of: zoom) { old, new in keepPlayheadInView(oldZoom: old, newZoom: new) }
+            .onChange(of: playhead) { followPlayhead() }
+            // 觸控板兩指捏合縮放
+            .simultaneousGesture(
+                MagnifyGesture()
+                    .onChanged { v in
+                        if pinchStart == nil { pinchStart = zoom }
+                        zoom = min(Self.maxZoom, max(1, (pinchStart ?? 1) * v.magnification))
+                    }
+                    .onEnded { _ in pinchStart = nil }
+            )
+        }
+        .task(id: "\(url.path)#\(frameCount)") { await loadFrames() }
+    }
+
+    /// 縮放時讓播放線停在畫面上差不多的位置
+    private func keepPlayheadInView(oldZoom: CGFloat, newZoom: CGFloat) {
+        guard newZoom > 1, let p = playhead, duration > 0, visibleWidth > 0 else {
+            scroll.scrollTo(x: 0)
+            return
+        }
+        let oldX = CGFloat(p / duration) * visibleWidth * oldZoom - scrollX
+        let screenX = (0...visibleWidth).contains(oldX) ? oldX : visibleWidth / 2
+        let newX = CGFloat(p / duration) * visibleWidth * newZoom
+        scroll.scrollTo(x: max(0, newX - screenX))
+    }
+
+    /// 播放中播放線跑出畫面：往前捲，讓它留在左邊三分之一
+    private func followPlayhead() {
+        guard zoom > 1, !dragging, let p = playhead, duration > 0, visibleWidth > 0 else { return }
+        let px = CGFloat(p / duration) * visibleWidth * zoom
+        if px < scrollX || px > scrollX + visibleWidth - 8 {
+            scroll.scrollTo(x: max(0, px - visibleWidth / 3))
+        }
+    }
+
+    private func strip(width: CGFloat, height: CGFloat) -> some View {
             ZStack(alignment: .topLeading) {
                 // 影格；拖動＝移動播放位置
                 HStack(spacing: 0) {
@@ -267,7 +355,7 @@ struct FilmstripTrimmer: View {
                         Image(nsImage: img)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: width / CGFloat(frameCount), height: height)
+                            .frame(width: width / CGFloat(max(frames.count, 1)), height: height)
                             .clipped()
                     }
                 }
@@ -278,8 +366,10 @@ struct FilmstripTrimmer: View {
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .named("strip"))
                         .onChanged { v in
+                            dragging = true
                             onScrub(min(max(0, time(for: v.location.x, width: width)), duration))
                         }
+                        .onEnded { _ in dragging = false }
                 )
 
                 // 沒選的空隙變暗
@@ -310,10 +400,14 @@ struct FilmstripTrimmer: View {
                                     let lower = i > 0 ? ranges[i - 1].end : 0
                                     let upper = ranges[i].end - ClipStorage.minClipLength
                                     let t = min(max(time(for: v.location.x, width: width), lower), upper)
+                                    dragging = true
                                     ranges[i].start = t
                                     onScrub(t)
                                 }
-                                .onEnded { _ in onCommit() }
+                                .onEnded { _ in
+                                    dragging = false
+                                    onCommit()
+                                }
                         )
 
                     handle(systemImage: "chevron.compact.right")
@@ -324,10 +418,14 @@ struct FilmstripTrimmer: View {
                                     let lower = ranges[i].start + ClipStorage.minClipLength
                                     let upper = i < ranges.count - 1 ? ranges[i + 1].start : duration
                                     let t = min(max(time(for: v.location.x, width: width), lower), upper)
+                                    dragging = true
                                     ranges[i].end = t
                                     onScrub(t)
                                 }
-                                .onEnded { _ in onCommit() }
+                                .onEnded { _ in
+                                    dragging = false
+                                    onCommit()
+                                }
                         )
                 }
 
@@ -342,8 +440,6 @@ struct FilmstripTrimmer: View {
                 }
             }
             .coordinateSpace(name: "strip")
-        }
-        .task(id: url) { await loadFrames() }
     }
 
     /// 黃色區段以外的空隙（頭、中間、尾）
@@ -384,12 +480,13 @@ struct FilmstripTrimmer: View {
     }
 
     private func loadFrames() async {
-        frames = []
-        guard duration > 0 else { return }
+        guard duration > 0 else { frames = []; return }
+        let frameCount = self.frameCount
         let asset = AVURLAsset(url: url)
         var loaded: [NSImage] = []
         for i in 0..<frameCount {
             let t = duration * (Double(i) + 0.5) / Double(frameCount)
+            if Task.isCancelled { return }   // 縮放又變了：交給新的那次
             if let img = await ClipStorage.frame(of: asset, at: t, maxSize: 160) {
                 loaded.append(img)
             }

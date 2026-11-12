@@ -1988,6 +1988,16 @@
         }
       }
     },
+    "放大時間軸" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom in timeline"
+          }
+        }
+      }
+    },
     "放開：丟到垃圾桶" : {
       "localizations" : {
         "en" : {
@@ -2098,6 +2108,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日文"
+          }
+        }
+      }
+    },
+    "時間軸縮放（觸控板兩指捏合也可以）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeline zoom (you can also pinch on the trackpad)"
           }
         }
       }
@@ -2808,6 +2828,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit"
+          }
+        }
+      }
+    },
+    "縮小時間軸" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom out timeline"
           }
         }
       }
@@ -3742,6 +3772,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
+          }
+        }
+      }
+    },
+    "雙擊回到整段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-click to fit the whole clip"
           }
         }
       }
