@@ -1050,11 +1050,6 @@ struct GapRow: View {
     let start: Double
     let end: Double
 
-    private var isFilling: Bool {
-        guard let g = store.fillingGap else { return false }
-        return abs(g.start - start) < 0.01 && abs(g.end - end) < 0.01
-    }
-
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "text.badge.xmark").foregroundStyle(.orange)
@@ -1062,23 +1057,33 @@ struct GapRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer(minLength: 4)
-            if isFilling {
+            switch store.gapState(ClipRange(start: start, end: end)) {
+            case .running:
                 ProgressView().controlSize(.small)
                 Text("辨識中…").font(.caption).foregroundStyle(.secondary)
-            } else {
+            case .queued:
+                Image(systemName: "clock").foregroundStyle(.secondary).font(.caption)
+                Text(queuedText).font(.caption).foregroundStyle(.secondary)
+            case .none:
                 Button {
                     store.fillGap(start: start, end: end)
                 } label: {
                     Label("重新辨識", systemImage: "waveform.badge.magnifyingglass")
                 }
                 .controlSize(.small)
-                .disabled(store.fillingGap != nil || store.isExporting)
                 .help("漏抓字幕時按這裡，只重新辨識這一段，其他字幕不動")
             }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.orange.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+    }
+
+    private var queuedText: String {
+        if let busy = store.otherProjectBusy(.transcribe) {
+            return String(localized: "排隊中（「\(busy)」正在辨識）")
+        }
+        return String(localized: "排隊中")
     }
 }
 

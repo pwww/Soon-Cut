@@ -945,6 +945,10 @@ struct JobsIndicator: View {
     }
 
     private func statusText(_ job: BackgroundJob) -> String {
+        if let gap = job.gap {
+            let range = "\(formatTime(gap.start))–\(formatTime(gap.end))"
+            return job.isRunning ? String(localized: "補字幕 \(range)") : String(localized: "排隊補字幕 \(range)")
+        }
         switch (job.kind, job.isRunning) {
         case (.transcribe, true): return store.subtitleStatus ?? String(localized: "產生字幕中")
         case (.transcribe, false): return String(localized: "排隊產生字幕")

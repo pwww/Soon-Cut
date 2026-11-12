@@ -52,6 +52,8 @@ struct BackgroundJob: Identifiable, Equatable {
     let projectID: UUID
     var projectName: String
     var isRunning = false
+    /// 補字幕（只重新辨識這一段）；nil＝整支產生字幕。跟產生字幕共用同一條佇列（同一個語音模型）
+    var gap: ClipRange? = nil
 }
 
 @MainActor
@@ -686,9 +688,9 @@ final class AppStore: ObservableObject {
     /// 正在翻譯字幕的專案（翻譯在字幕畫面進行，只限目前專案）
     @Published private(set) var translatingProjectID: UUID?
 
-    private func enqueue(_ kind: JobKind, work: @escaping () async -> Void) {
+    private func enqueue(_ kind: JobKind, gap: ClipRange? = nil, work: @escaping () async -> Void) {
         let job = BackgroundJob(kind: kind, projectID: currentProjectID,
-                                projectName: currentProject?.name ?? "")
+                                projectName: currentProject?.name ?? "", gap: gap)
         jobs.append(job)
         jobWork[job.id] = work
         runNext(kind)
@@ -709,7 +711,7 @@ final class AppStore: ObservableObject {
 
     /// 取消目前專案還在排隊（尚未開始）的工作
     func cancelQueued(_ kind: JobKind) {
-        let ids = jobs.filter { $0.kind == kind && $0.projectID == currentProjectID && !$0.isRunning }.map(\.id)
+        let ids = jobs.filter { $0.kind == kind && $0.projectID == currentProjectID && !$0.isRunning && $0.gap == nil }.map(\.id)
         jobs.removeAll { ids.contains($0.id) }
         ids.forEach { jobWork[$0] = nil }
     }
@@ -721,7 +723,9 @@ final class AppStore: ObservableObject {
     /// 這個專案的工作排在第幾個（1＝下一個），以及前面正在做的是哪個專案
     func queueInfo(_ kind: JobKind) -> (position: Int, runningProject: String)? {
         let list = jobs.filter { $0.kind == kind }
-        guard let mine = list.firstIndex(where: { $0.projectID == currentProjectID }), !list[mine].isRunning else { return nil }
+        // 補字幕的排隊狀態顯示在字幕稿那一列，這裡只看整支產生字幕／輸出
+        guard let mine = list.firstIndex(where: { $0.projectID == currentProjectID && $0.gap == nil }),
+              !list[mine].isRunning else { return nil }
         let running = list.first(where: \.isRunning)?.projectName ?? ""
         return (mine, running)
     }
@@ -737,7 +741,8 @@ final class AppStore: ObservableObject {
 
     /// 目前專案有字幕工作（排隊、轉寫中或翻譯中）
     var isTranscribing: Bool {
-        job(.transcribe, for: currentProjectID) != nil || translatingProjectID == currentProjectID
+        jobs.contains { $0.kind == .transcribe && $0.projectID == currentProjectID && $0.gap == nil }
+            || translatingProjectID == currentProjectID
     }
     /// 進度畫面要不要在這個專案顯示
     var transcribeRunningHere: Bool { subtitleStatus != nil && transcribeProjectID == currentProjectID }
@@ -1296,9 +1301,17 @@ final class AppStore: ObservableObject {
     }
 
     // MARK: 補字幕：字幕稿裡沒抓到的空白段，重新辨識那一段
+    // 跟產生字幕排同一條佇列；切換專案照樣進行，結果存回原專案
 
-    /// 正在重新辨識的空白段
-    @Published private(set) var fillingGap: ClipRange?
+    enum GapState { case none, queued, running }
+
+    func gapState(_ gap: ClipRange) -> GapState {
+        guard let job = jobs.first(where: {
+            $0.kind == .transcribe && $0.projectID == currentProjectID
+                && $0.gap.map { abs($0.start - gap.start) < 0.01 && abs($0.end - gap.end) < 0.01 } == true
+        }) else { return .none }
+        return job.isRunning ? .running : .queued
+    }
 
     /// 字幕要翻譯成別的語言時不提供（補進來的句子還沒翻譯，會跟其他句不一致）
     var canFillGaps: Bool {
@@ -1307,37 +1320,82 @@ final class AppStore: ObservableObject {
     }
 
     func fillGap(start: Double, end: Double) {
-        guard fillingGap == nil, !isTranscribing, !isExporting, canFillGaps else { return }
+        let gap = ClipRange(start: start, end: end)
+        guard gapState(gap) == .none, !isTranscribing, canFillGaps else { return }
         let projectID = currentProjectID
         let clips = activeClips
         let speech = spokenLanguage
-        let gap = ClipRange(start: max(0, start - 0.3), end: end + 0.3)
-        fillingGap = ClipRange(start: start, end: end)
+        let key = subtitlesKey
+        let target = subtitleLanguage
         captionNote = nil
-        Task {
-            defer { fillingGap = nil }
-            do {
-                let built = try await Composer.build(clips: clips)
-                let result = try await transcriber.transcribe(asset: built.composition, pieces: [gap], language: speech)
-                guard projectID == currentProjectID else { return }
-                // 只收真的落在空白段裡的句子，避免跟前後已有的字幕重複
-                let new = result.segments.compactMap { seg -> SubtitleSegment? in
-                    let s = max(seg.start, start), e = min(seg.end, end)
-                    guard e - s > 0.2 else { return nil }
-                    return SubtitleSegment(start: s, end: e, text: seg.text)
-                }
-                guard !new.isEmpty else {
-                    captionNote = String(localized: "這一段沒有辨識到說話")
-                    return
-                }
-                recordEdit(String(localized: "補字幕"))
-                sourceSubtitles = (sourceSubtitles + new).sorted { $0.start < $1.start }
-                let display = Self.localized(new, spoken: result.language, target: subtitleLanguage)
-                subtitles = (subtitles + display).sorted { $0.start < $1.start }
-                saveSubtitles()
-                captionNote = String(localized: "補上 \(new.count) 句字幕")
-            } catch {
-                errorMessage = error.localizedDescription
+        enqueue(.transcribe, gap: gap) { [weak self] in
+            await self?.runFillGap(projectID: projectID, gap: gap, key: key, clips: clips,
+                                   speech: speech, target: target)
+        }
+    }
+
+    private func runFillGap(projectID: UUID, gap: ClipRange, key: String?, clips: [Clip],
+                            speech: String?, target: SubtitleLanguage) async {
+        let segments: [SubtitleSegment]
+        let language: String
+        do {
+            let built = try await Composer.build(clips: clips)
+            let piece = ClipRange(start: max(0, gap.start - 0.3), end: gap.end + 0.3)
+            let result = try await transcriber.transcribe(asset: built.composition, pieces: [piece], language: speech)
+            segments = result.segments
+            language = result.language
+        } catch {
+            let name = projectName(projectID)
+            errorMessage = projectID == currentProjectID
+                ? String(localized: "補字幕失敗：\(Self.describe(error))")
+                : String(localized: "「\(name)」補字幕失敗：\(Self.describe(error))")
+            return
+        }
+
+        // 讀出那個專案「現在」的字幕（使用者可能已經切到別的專案）
+        let isCurrent = projectID == currentProjectID
+        var file: SubtitleFile
+        if isCurrent {
+            file = SubtitleFile(sequenceKey: subtitlesKey ?? "", segments: subtitles,
+                                sourceSegments: sourceSubtitles, spokenLanguage: spokenLanguage, needsTranslation: nil)
+        } else {
+            let url = Projects.folder(projectID).appendingPathComponent("subtitles.json")
+            guard let data = try? Data(contentsOf: url),
+                  let loaded = try? JSONDecoder().decode(SubtitleFile.self, from: data) else { return }
+            file = loaded
+        }
+        // 排隊期間整支重新產生過字幕，這次的結果就不適用了
+        guard file.sequenceKey == (key ?? "") else { return }
+
+        // 只收真的落在空白段、而且沒有跟現有字幕重疊的句子
+        let existing = file.segments
+        let new = segments.compactMap { seg -> SubtitleSegment? in
+            let s = max(seg.start, gap.start), e = min(seg.end, gap.end)
+            guard e - s > 0.2,
+                  !existing.contains(where: { min($0.end, e) - max($0.start, s) > 0.1 }) else { return nil }
+            return SubtitleSegment(start: s, end: e, text: seg.text)
+        }
+        guard !new.isEmpty else {
+            if isCurrent { captionNote = String(localized: "這一段沒有辨識到說話") }
+            return
+        }
+        let display = Self.localized(new, spoken: language, target: target)
+
+        if isCurrent {
+            recordEdit(String(localized: "補字幕"))
+            sourceSubtitles = (sourceSubtitles + new).sorted { $0.start < $1.start }
+            subtitles = (subtitles + display).sorted { $0.start < $1.start }
+            saveSubtitles()
+            captionNote = String(localized: "補上 \(new.count) 句字幕")
+        } else {
+            file.segments = (file.segments + display).sorted { $0.start < $1.start }
+            file.sourceSegments = ((file.sourceSegments ?? []) + new).sorted { $0.start < $1.start }
+            if let data = try? JSONEncoder().encode(file) {
+                try? data.write(to: Projects.folder(projectID).appendingPathComponent("subtitles.json"), options: .atomic)
+            }
+            if let p = projects.first(where: { $0.id == projectID }) {
+                try? SRTWriter.srt(from: file.segments).write(to: CaptionWorkspace.fileURL(for: p, among: projects),
+                                                              atomically: true, encoding: .utf8)
             }
         }
     }

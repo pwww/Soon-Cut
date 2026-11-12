@@ -310,6 +310,16 @@
         }
       }
     },
+    "「%@」補字幕失敗：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't fill in captions for “%@”: %@"
+          }
+        }
+      }
+    },
     "「%@」輸出失敗：%@" : {
       "localizations" : {
         "en" : {
@@ -2175,6 +2185,26 @@
         }
       }
     },
+    "排隊中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued"
+          }
+        }
+      }
+    },
+    "排隊中（「%@」正在辨識）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued (“%@” is transcribing)"
+          }
+        }
+      }
+    },
     "排隊產生字幕" : {
       "localizations" : {
         "en" : {
@@ -2191,6 +2221,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Waiting to generate captions"
+          }
+        }
+      }
+    },
+    "排隊補字幕 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued: fill in captions %@"
           }
         }
       }
@@ -3320,6 +3360,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fill in captions"
+          }
+        }
+      }
+    },
+    "補字幕 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filling in captions %@"
+          }
+        }
+      }
+    },
+    "補字幕失敗：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't fill in captions: %@"
           }
         }
       }
