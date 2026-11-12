@@ -97,6 +97,7 @@ actor Transcriber {
         var all: [SubtitleSegment] = []
 
         for piece in pieces where piece.length >= 0.5 {
+            let firstIndex = all.count
             var offset = piece.start
             var attempts = 0
             while piece.end - offset > 1.5 && attempts < 12 {
@@ -116,7 +117,39 @@ actor Transcriber {
                 if piece.end - lastEnd <= 2 { break }               // 這一段轉完了
                 offset = max(lastEnd, offset + 1)                   // 停在中間：從停下的地方接著轉
             }
+
+            // 補洞：Whisper 有時會把整個 30 秒視窗判成「沒說話」直接跳過（新聞、背景音多時常見），
+            // 字幕就會整段消失。找出這一段裡超過 3 秒沒有字幕的地方，放寬門檻再轉一次。
+            let found = all[firstIndex...].sorted { $0.start < $1.start }
+            var holes: [ClipRange] = []
+            var cursor = piece.start
+            for seg in found {
+                if seg.start - cursor > Self.holeThreshold { holes.append(ClipRange(start: cursor, end: seg.start)) }
+                cursor = max(cursor, seg.end)
+            }
+            if piece.end - cursor > Self.holeThreshold { holes.append(ClipRange(start: cursor, end: piece.end)) }
+
+            for hole in holes {
+                // 長的洞切成 25 秒一段（不靠 VAD 切，VAD 正是會漏掉的那一關）
+                var windowStart = max(piece.start, hole.start - 0.3)
+                let holeEnd = min(piece.end, hole.end + 0.3)
+                while holeEnd - windowStart > 1.0 {
+                    let windowEnd = min(holeEnd, windowStart + 25)
+                    let range = CMTimeRange(start: CMTime(seconds: windowStart, preferredTimescale: 600),
+                                            end: CMTime(seconds: windowEnd, preferredTimescale: 600))
+                    if let result = try? await transcribeRange(asset: asset, range: range, language: spoken, relaxed: true) {
+                        for seg in result.segments {
+                            let start = max(hole.start, windowStart + seg.start)
+                            let end = min(hole.end, windowStart + seg.end)
+                            guard end - start > 0.2, !Self.looksLikeHallucination(seg.text) else { continue }
+                            all.append(SubtitleSegment(start: start, end: end, text: seg.text))
+                        }
+                    }
+                    windowStart = windowEnd
+                }
+            }
         }
+        all.sort { $0.start < $1.start }
         let lang = spoken ?? "zh"
         let cleaned = all.compactMap { seg -> SubtitleSegment? in
             let text = Self.clean(seg.text, chinese: lang == "zh")
@@ -127,7 +160,26 @@ actor Transcriber {
     }
 
     /// 轉寫時間軸上的一小段；回傳的時間從這一小段的開頭算起
-    private func transcribeRange(asset: AVAsset, range: CMTimeRange, language: String?) async throws -> (segments: [SubtitleSegment], language: String) {
+    /// 超過這麼多秒沒有字幕，就當成可能漏掉、補轉一次
+    static let holeThreshold: Double = 3
+
+    /// 放寬門檻時，Whisper 在真正安靜的地方容易「腦補」出這類句子，丟掉
+    static func looksLikeHallucination(_ text: String) -> Bool {
+        let t = text.replacingOccurrences(of: "<\\|[^|]*\\|>", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { return true }
+        let patterns = ["訂閱", "订阅", "點贊", "点赞", "打賞", "打赏", "字幕由", "字幕製作", "字幕制作",
+                        "明鏡", "明镜", "Amara", "謝謝觀看", "谢谢观看", "感謝收看", "感谢收看",
+                        "Thank you for watching", "Subtitles by"]
+        if patterns.contains(where: { t.localizedCaseInsensitiveContains($0) }) { return true }
+        // 同一個字重複一大串（例如「啊啊啊啊啊啊」）
+        if let first = t.first, t.count >= 6, t.allSatisfy({ $0 == first }) { return true }
+        return false
+    }
+
+    /// - Parameter relaxed: 補洞用：不切 VAD、不因「像沒說話」或信心低而跳過視窗
+    private func transcribeRange(asset: AVAsset, range: CMTimeRange, language: String?,
+                                 relaxed: Bool = false) async throws -> (segments: [SubtitleSegment], language: String) {
         let audioURL = try await Self.extractAudio(from: asset, timeRange: range)
         defer { try? FileManager.default.removeItem(at: audioURL) }
 
@@ -141,6 +193,12 @@ actor Transcriber {
         options.skipSpecialTokens = true
         options.withoutTimestamps = false
         options.chunkingStrategy = .vad
+        if relaxed {
+            options.chunkingStrategy = nil
+            options.noSpeechThreshold = nil
+            options.logProbThreshold = nil
+            options.firstTokenLogProbThreshold = nil
+        }
 
         let results = try await whisper.transcribe(audioPath: audioURL.path, decodeOptions: options)
         let spoken = language ?? results.first?.language ?? "zh"
