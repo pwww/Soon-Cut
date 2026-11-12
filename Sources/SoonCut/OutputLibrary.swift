@@ -27,6 +27,10 @@ struct ExportItem: Codable, Identifiable {
 
     var id: String { file }
     var url: URL { OutputLibrary.exportsDir.appendingPathComponent(file) }
+    /// 顯示用的名稱（檔名去掉副檔名）
+    var name: String { (file as NSString).deletingPathExtension }
+    /// 還是自動取的名字（soon-cut-日期）
+    var hasDefaultName: Bool { name.hasPrefix("soon-cut-") }
 }
 
 /// 輸出的影片存在 ~/Movies/Soon-Cut/Exports，分層資訊存在 exports.json

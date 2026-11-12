@@ -1553,6 +1553,38 @@ final class AppStore: ObservableObject {
         OutputLibrary.save(exports)
     }
 
+    /// 重新命名輸出的影片：影片和同名的 .srt 一起改
+    func rename(_ item: ExportItem, to newName: String) {
+        var base = newName
+            .replacingOccurrences(of: "[/\\\\:*?\"<>|]", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if base.lowercased().hasSuffix(".mp4") { base = String(base.dropLast(4)) }
+        guard !base.isEmpty, base != item.name,
+              let i = exports.firstIndex(where: { $0.id == item.id }) else { return }
+        let fm = FileManager.default
+        let ext = item.url.pathExtension.isEmpty ? "mp4" : item.url.pathExtension
+        // 撞名就加上編號
+        var candidate = base
+        var n = 2
+        while fm.fileExists(atPath: OutputLibrary.exportsDir.appendingPathComponent("\(candidate).\(ext)").path) {
+            candidate = "\(base) \(n)"
+            n += 1
+        }
+        let newURL = OutputLibrary.exportsDir.appendingPathComponent("\(candidate).\(ext)")
+        do {
+            try fm.moveItem(at: item.url, to: newURL)
+        } catch {
+            errorMessage = Self.describe(error)
+            return
+        }
+        let oldSRT = SRTWriter.url(for: item.url)
+        if fm.fileExists(atPath: oldSRT.path) {
+            try? fm.moveItem(at: oldSRT, to: SRTWriter.url(for: newURL))
+        }
+        exports[i].file = newURL.lastPathComponent
+        OutputLibrary.save(exports)
+    }
+
     func reveal(_ item: ExportItem) {
         Self.revealInFinder(item.url)
     }

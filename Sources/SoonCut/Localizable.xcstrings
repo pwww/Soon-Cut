@@ -1165,6 +1165,16 @@
         }
       }
     },
+    "同名的字幕稿（SRT）也會一起改名" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The matching captions file (SRT) is renamed too"
+          }
+        }
+      }
+    },
     "同時錄麥克風（右鍵選擇麥克風）" : {
       "localizations" : {
         "en" : {
@@ -3334,6 +3344,16 @@
         }
       }
     },
+    "複製這個專案的社群貼文，搭配影片一起上傳" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy this project's social post to upload with the video"
+          }
+        }
+      }
+    },
     "西班牙文" : {
       "localizations" : {
         "en" : {
@@ -3996,6 +4016,16 @@
         }
       }
     },
+    "重新命名影片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename video"
+          }
+        }
+      }
+    },
     "重新整理" : {
       "localizations" : {
         "en" : {
@@ -4412,6 +4442,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點上面的片段就會在這裡播放與剪輯"
+          }
+        }
+      }
+    },
+    "點兩下重新命名" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-click to rename"
           }
         }
       }

@@ -665,6 +665,15 @@ struct ExportRow: View {
     let item: ExportItem
     var isSelected = false
     @State private var thumb: NSImage?
+    @State private var postCopied = false
+
+    private func askRename() {
+        TextPrompt.ask(title: String(localized: "重新命名影片"),
+                       message: String(localized: "同名的字幕稿（SRT）也會一起改名"),
+                       defaultText: item.hasDefaultName ? (store.currentProject?.name ?? item.name) : item.name) { name in
+            store.rename(item, to: name)
+        }
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -679,9 +688,22 @@ struct ExportRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.createdAt, format: .dateTime.month().day().hour().minute())
-                    .font(.callout.weight(.semibold))
+                Group {
+                    if item.hasDefaultName {
+                        Text(item.createdAt, format: .dateTime.month().day().hour().minute())
+                    } else {
+                        Text(item.name)
+                    }
+                }
+                .font(.callout.weight(.semibold))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help("點兩下重新命名")
+                .onTapGesture(count: 2) { askRename() }
                 HStack(spacing: 6) {
+                    if !item.hasDefaultName {
+                        Text(item.createdAt, format: .dateTime.month().day().hour().minute())
+                    }
                     Text(formatTime(item.duration)).monospacedDigit()
                     if let format = item.format {
                         // 舊紀錄存的是輸出當下的語言，顯示時換成目前語言
@@ -702,9 +724,26 @@ struct ExportRow: View {
 
             Spacer()
 
-            if item.status == .latest {
-                Button("標記已上傳") { store.setStatus(item, .uploaded) }
+            VStack(alignment: .trailing, spacing: 4) {
+                if let post = store.currentPost {
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(post, forType: .string)
+                        postCopied = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(1.5))
+                            postCopied = false
+                        }
+                    } label: {
+                        Label(postCopied ? "已複製" : "複製貼文", systemImage: postCopied ? "checkmark" : "text.bubble")
+                    }
                     .controlSize(.small)
+                    .help("複製這個專案的社群貼文，搭配影片一起上傳")
+                }
+                if item.status == .latest {
+                    Button("標記已上傳") { store.setStatus(item, .uploaded) }
+                        .controlSize(.small)
+                }
             }
 
             Menu {
@@ -712,6 +751,7 @@ struct ExportRow: View {
                     Button("移到「\(status.label)」") { store.setStatus(item, status) }
                 }
                 Divider()
+                Button("重新命名…") { askRename() }
                 Button("在 Finder 中顯示") { store.reveal(item) }
                 if FileManager.default.fileExists(atPath: SRTWriter.url(for: item.url).path) {
                     Button("拷貝字幕稿（SRT）") {
