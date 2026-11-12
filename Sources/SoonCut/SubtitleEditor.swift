@@ -388,8 +388,6 @@ struct SubtitleEditor: View {
                 .help(String(localized: "「\(store.captionFileName)」會一直跟著這個專案的字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來"))
             }
             ProjectNoteField()
-            ProofreadGuide()
-            ProjectPostCard()
             if let note = store.captionNote {
                 Label(note, systemImage: "checkmark.circle.fill")
                     .font(.caption)
@@ -432,7 +430,24 @@ struct SubtitleEditor: View {
     }
 
     private var subtitleList: some View {
+        // 校正說明和貼文放在捲動區裡，展開很長時也能捲到下面的字幕
         ScrollView {
+            VStack(alignment: .leading, spacing: 6) {
+                ProofreadGuide()
+                ProjectPostCard()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 4)
+            if store.subtitles.isEmpty && !store.isTranscribing {
+                Text(Transcriber.isModelDownloaded
+                     ? "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出"
+                     : "選好語音與字幕語言，按「產生字幕」。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+            }
             LazyVStack(alignment: .leading, spacing: 4) {
                 ForEach(store.subtitles) { seg in
                     SubtitleRow(
@@ -448,16 +463,6 @@ struct SubtitleEditor: View {
             .opacity(store.subtitlesOutdated ? 0.45 : 1)
         }
         .frame(minHeight: 70, maxHeight: .infinity)
-        .overlay {
-            if store.subtitles.isEmpty && !store.isTranscribing {
-                Text(Transcriber.isModelDownloaded
-                     ? "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出"
-                     : "選好語音與字幕語言，按「產生字幕」。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
     }
 
     // MARK: 播放器
