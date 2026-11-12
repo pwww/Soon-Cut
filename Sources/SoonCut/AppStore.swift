@@ -328,7 +328,9 @@ final class AppStore: ObservableObject {
 
     // MARK: - 專案
 
-    @Published private(set) var projects: [ProjectInfo] = []
+    @Published private(set) var projects: [ProjectInfo] = [] {
+        didSet { if projects != oldValue { CaptionWorkspace.writeIndex(projects) } }
+    }
     @Published private(set) var currentProjectID = UUID()
     /// 切換專案中：暫停「片段變了就清字幕」之類的連動
     private var isSwitchingProject = false
@@ -343,6 +345,8 @@ final class AppStore: ObservableObject {
         currentProjectID = projects.first { $0.id == saved }?.id ?? projects[0].id
         ClipStorage.currentProjectDir = Projects.folder(currentProjectID)
         loadSubtitleStash()
+        CaptionWorkspace.writeIndex(projects)
+        reloadPost()
         // 舊版只有一份 Captions/captions.srt：改名成目前專案的校正檔
         let legacy = CaptionWorkspace.dir.appendingPathComponent("captions.srt")
         let fm = FileManager.default
@@ -377,6 +381,7 @@ final class AppStore: ObservableObject {
         // 新專案的校正檔：先當作「跟 App 一致」，再看外面有沒有改過
         lastSyncedSRT = SRTWriter.srt(from: subtitles)
         lastCaptionModified = captionFileModified()
+        reloadPost()
         if FileManager.default.fileExists(atPath: captionFileURL.path) {
             captionFileChanged()
         }
@@ -398,9 +403,20 @@ final class AppStore: ObservableObject {
         appTab = .record
     }
 
+    /// 目前專案的備註
+    var currentNote: String { currentProject?.note ?? "" }
+
+    func setCurrentNote(_ note: String) {
+        guard let i = projects.firstIndex(where: { $0.id == currentProjectID }),
+              (projects[i].note ?? "") != note else { return }
+        projects[i].note = note
+        Projects.saveIndex(projects)
+    }
+
     func renameCurrentProject(_ name: String) {
         guard let i = projects.firstIndex(where: { $0.id == currentProjectID }) else { return }
         let oldURL = captionFileURL
+        let oldPost = postFileURL
         projects[i].name = name
         projects[i].updatedAt = Date()
         Projects.saveIndex(projects)
@@ -408,6 +424,9 @@ final class AppStore: ObservableObject {
         if oldURL != newURL, FileManager.default.fileExists(atPath: oldURL.path) {
             try? FileManager.default.moveItem(at: oldURL, to: newURL)
             lastCaptionModified = captionFileModified()
+        }
+        if oldPost != postFileURL, FileManager.default.fileExists(atPath: oldPost.path) {
+            try? FileManager.default.moveItem(at: oldPost, to: postFileURL)
         }
     }
 
@@ -418,6 +437,7 @@ final class AppStore: ObservableObject {
               let doomed = projects.first(where: { $0.id == currentProjectID }) else { return }
         let ownFiles = Set(clips.map { $0.url.lastPathComponent })
         let captionFile = captionFileURL
+        let postFile = postFileURL
         let othersUse = Projects.filesUsed(excluding: doomed.id)
         let next = projects.first { $0.id != doomed.id }!
         switchProject(to: next.id)
@@ -426,6 +446,7 @@ final class AppStore: ObservableObject {
         let fm = FileManager.default
         try? fm.trashItem(at: Projects.dir.appendingPathComponent(doomed.id.uuidString), resultingItemURL: nil)
         if fm.fileExists(atPath: captionFile.path) { try? fm.trashItem(at: captionFile, resultingItemURL: nil) }
+        if fm.fileExists(atPath: postFile.path) { try? fm.trashItem(at: postFile, resultingItemURL: nil) }
         for file in ownFiles.subtracting(othersUse) {
             try? fm.trashItem(at: ClipStorage.rawDir.appendingPathComponent(file), resultingItemURL: nil)
         }
@@ -1086,6 +1107,7 @@ final class AppStore: ObservableObject {
         captionPollTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
+                self.reloadPost()
                 let modified = self.captionFileModified()
                 if modified != self.lastCaptionModified {
                     self.lastCaptionModified = modified
@@ -1098,11 +1120,89 @@ final class AppStore: ObservableObject {
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename],
                                                                queue: .main)
         source.setEventHandler { [weak self] in
-            MainActor.assumeIsolated { _ = self?.captionFileChanged() }
+            MainActor.assumeIsolated {
+                self?.reloadPost()
+                _ = self?.captionFileChanged()
+            }
         }
         source.setCancelHandler { close(fd) }
         source.resume()
         captionWatcher = source
+    }
+
+    // MARK: 社群貼文（LLM 寫成 <專案>.post.md）
+
+    var postFileURL: URL {
+        guard let p = currentProject else { return CaptionWorkspace.dir.appendingPathComponent("post.md") }
+        return CaptionWorkspace.postURL(for: p, among: projects)
+    }
+
+    /// 目前專案的社群貼文；還沒寫就是 nil
+    @Published private(set) var currentPost: String?
+
+    func reloadPost() {
+        let text = (try? String(contentsOf: postFileURL, encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let post = (text?.isEmpty ?? true) ? nil : text
+        if post != currentPost { currentPost = post }
+    }
+
+    func revealPost() { Self.revealInFinder(postFileURL) }
+
+    // MARK: 一次處理所有專案
+
+    /// 每個有字幕的專案都要有校正檔（之前沒打開過的專案可能還沒有）；回傳這些專案
+    private func ensureAllCaptionFiles() -> [ProjectInfo] {
+        syncCaptionFile()
+        var result: [ProjectInfo] = []
+        for p in projects.sorted(by: { $0.createdAt < $1.createdAt }) {
+            let url = CaptionWorkspace.fileURL(for: p, among: projects)
+            if p.id == currentProjectID {
+                if !subtitles.isEmpty { result.append(p) }
+                continue
+            }
+            if FileManager.default.fileExists(atPath: url.path) { result.append(p); continue }
+            guard let data = try? Data(contentsOf: Projects.folder(p.id).appendingPathComponent("subtitles.json")),
+                  let file = try? JSONDecoder().decode(SubtitleFile.self, from: data),
+                  !file.segments.isEmpty else { continue }
+            try? SRTWriter.srt(from: file.segments).write(to: url, atomically: true, encoding: .utf8)
+            result.append(p)
+        }
+        return result
+    }
+
+    private func projectList(_ list: [ProjectInfo], withPosts: Bool) -> String {
+        list.map { p in
+            var line = "- 「\(CaptionWorkspace.fileName(for: p, among: projects))」"
+            if withPosts { line += " → 「\(CaptionWorkspace.postURL(for: p, among: projects).lastPathComponent)」" }
+            if let note = p.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                line += String(localized: "（備註：\(note.replacingOccurrences(of: "\n", with: " "))）")
+            }
+            return line
+        }.joined(separator: "\n")
+    }
+
+    /// 單一專案的指令後面加上備註
+    func withNote(_ prompt: String) -> String {
+        let note = currentNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !note.isEmpty else { return prompt }
+        return prompt + "\n\n" + String(localized: "背景備註（以此為準）：\(note)")
+    }
+
+    /// 一次校正所有專案：互相參考前後文
+    func proofreadAllPrompt() -> String? {
+        let list = ensureAllCaptionFiles()
+        guard !list.isEmpty else { return nil }
+        return String(localized: "讀這個資料夾的 README.md、glossary.md 和 projects.md，然後校正下面所有專案的字幕檔。先把它們全部讀完：這些影片可能是同一場合或同一系列，請互相參考前後文、人名、機構與術語來判斷正確寫法，備註是我提供的背景，以備註為準（不確定的請上網查證）。每個檔案只改自己的文字，不要改編號、時間軸和句數，改完各自存回原檔。最後依檔案列出你改了哪些句子，以及沒把握所以沒改的地方。")
+            + "\n\n" + projectList(list, withPosts: false)
+    }
+
+    /// 一次幫所有專案寫社群貼文：可跨專案參考，但每則只講自己那段
+    func postsAllPrompt() -> String? {
+        let list = ensureAllCaptionFiles()
+        guard !list.isEmpty else { return nil }
+        return String(localized: "讀這個資料夾的 README.md 和 projects.md，然後幫下面每個專案各寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。先把所有字幕讀完，可以跨專案參考前後文補足背景，但每則貼文只講自己那支影片的內容。備註是我提供的背景（場合、日期、人物），請寫進貼文並以備註為準。每則貼文存成箭頭後面的檔名，只放貼文內文。")
+            + "\n\n" + projectList(list, withPosts: true)
     }
 
     /// 校正檔被外部改過：只套用文字，時間軸與句數以 App 為準

@@ -335,6 +335,16 @@
         }
       }
     },
+    "一次校正所有專案的字幕檔，互相參考前後文、人名與術語，並帶上各專案的備註" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofread every project's captions at once, using each other's context, names and terms, with each project's note included"
+          }
+        }
+      }
+    },
     "一次買斷，不是訂閱，不會自動續訂。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -667,6 +677,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保留 %lld 段　共 %@"
+          }
+        }
+      }
+    },
+    "備註（例如：11/11 某某立院質詢國防部長），複製指令時會一起帶上" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note (e.g. 11/11 hearing with the defense minister) — included when you copy a prompt"
           }
         }
       }
@@ -1225,6 +1245,16 @@
         }
       }
     },
+    "在 Finder 顯示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
     "在「字幕」分頁按「合成字幕輸出」，影片會出現在這裡" : {
       "localizations" : {
         "en" : {
@@ -1641,6 +1671,16 @@
         }
       }
     },
+    "幫每個專案各寫一則貼文，跨專案補足背景，並帶上各專案的備註；寫好會顯示在各專案的字幕頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a post for each project, using the others for background, with each project's note included. Posts appear on each project's Captions page"
+          }
+        }
+      }
+    },
     "影片與語音一樣只在你的 Mac 上處理" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1801,6 +1841,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "My First Project"
+          }
+        }
+      }
+    },
+    "所有專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All projects"
+          }
+        }
+      }
+    },
+    "所有專案寫貼文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts for all projects"
           }
         }
       }
@@ -2342,6 +2402,16 @@
         }
       }
     },
+    "校正所有專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofread all projects"
+          }
+        }
+      }
+    },
     "校正資料夾" : {
       "localizations" : {
         "en" : {
@@ -2736,6 +2806,16 @@
         }
       }
     },
+    "用 LLM 校正字幕、寫貼文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proofread and write posts with an LLM"
+          }
+        }
+      }
+    },
     "用本機 Whisper 轉寫字幕" : {
       "localizations" : {
         "en" : {
@@ -2826,6 +2906,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your current captions and any edits you made will be replaced."
+          }
+        }
+      }
+    },
+    "社群貼文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Social post"
           }
         }
       }
@@ -3092,6 +3182,16 @@
         }
       }
     },
+    "背景備註（以此為準）：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background note (treat as correct): %@"
+          }
+        }
+      }
+    },
     "背景工作" : {
       "localizations" : {
         "en" : {
@@ -3180,6 +3280,16 @@
         }
       }
     },
+    "複製貼文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy post"
+          }
+        }
+      }
+    },
     "西班牙文" : {
       "localizations" : {
         "en" : {
@@ -3242,6 +3352,16 @@
         }
       }
     },
+    "讀「%@」，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。存成「%@」，只放貼文內文。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read “%@” and write a Threads post: a hook in the first line, three key points, and a closing question. Under 500 characters, conversational tone. Save it as “%@”, post text only."
+          }
+        }
+      }
+    },
     "讀「%@」，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。" : {
       "localizations" : {
         "en" : {
@@ -3284,6 +3404,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read README.md and glossary.md in this folder, then fix typos, sound-alike errors, names, organizations and technical terms in “%@” (look things up if unsure). Don't change the numbers, timestamps or line count. Save it back to “%@”, then list the lines you changed and anything you weren't sure about."
+          }
+        }
+      }
+    },
+    "讀這個資料夾的 README.md 和 projects.md，然後幫下面每個專案各寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。先把所有字幕讀完，可以跨專案參考前後文補足背景，但每則貼文只講自己那支影片的內容。備註是我提供的背景（場合、日期、人物），請寫進貼文並以備註為準。每則貼文存成箭頭後面的檔名，只放貼文內文。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read README.md and projects.md in this folder, then write one Threads post for each project below: a hook in the first line, three key points, and a closing question. Under 500 characters, conversational tone. Read all the captions first — you can use other projects for background, but each post should only cover its own video. The notes are background I provided (occasion, date, people): work them into the post and treat them as correct. Save each post to the file name after the arrow, post text only."
+          }
+        }
+      }
+    },
+    "讀這個資料夾的 README.md、glossary.md 和 projects.md，然後校正下面所有專案的字幕檔。先把它們全部讀完：這些影片可能是同一場合或同一系列，請互相參考前後文、人名、機構與術語來判斷正確寫法，備註是我提供的背景，以備註為準（不確定的請上網查證）。每個檔案只改自己的文字，不要改編號、時間軸和句數，改完各自存回原檔。最後依檔案列出你改了哪些句子，以及沒把握所以沒改的地方。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read README.md, glossary.md and projects.md in this folder, then proofread the caption files of all the projects below. Read them all first: these videos may come from the same event or series, so use each other's context, names, organizations and terms to work out the correct spellings. The notes are background I provided — treat them as correct (look things up if unsure). Only change each file's own text; don't change the numbers, timestamps or line count, and save each one back to its own file. Finally, list per file the lines you changed and anything you weren't sure about."
           }
         }
       }
@@ -3591,6 +3731,16 @@
         }
       }
     },
+    "這個專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This project"
+          }
+        }
+      }
+    },
     "這個片段在暫存區，不會放進「全片」的預覽與輸出。" : {
       "localizations" : {
         "en" : {
@@ -3714,6 +3864,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "還原"
+          }
+        }
+      }
+    },
+    "還沒有任何專案有字幕，先產生字幕再試" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No project has captions yet — generate captions first"
           }
         }
       }
@@ -4200,6 +4360,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點片段，拖曳膠卷條兩端的黃色把手剪掉頭尾；按「在這裡剪開」（⌘B）可以把黃色區塊切成兩塊，拉開後中間會被跳過。也可以匯入現有的影片。左右拖動縮圖可以排順序，往下拖到「暫存區」就不會放進這次輸出。"
+          }
+        }
+      }
+    },
+    "（備註：%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " (note: %@)"
           }
         }
       }

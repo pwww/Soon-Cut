@@ -387,7 +387,9 @@ struct SubtitleEditor: View {
                 .font(.caption)
                 .help(String(localized: "「\(store.captionFileName)」會一直跟著這個專案的字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來"))
             }
+            ProjectNoteField()
             ProofreadGuide()
+            ProjectPostCard()
             if let note = store.captionNote {
                 Label(note, systemImage: "checkmark.circle.fill")
                     .font(.caption)
@@ -811,11 +813,19 @@ struct ExportPreview: View {
 struct ProofreadGuide: View {
     @EnvironmentObject var store: AppStore
     @AppStorage("proofreadGuideExpanded") private var expanded = false
-    @State private var copiedIndex: Int?
+    @State private var copiedTitle: String?
+    @State private var emptyNote = false
 
-    private var prompts: [(title: String, text: String)] {
+    private struct Prompt {
+        var title: String
+        var preview: String
+        var make: () -> String?
+    }
+
+    /// 這個專案的指令（後面自動帶上備註）
+    private var projectPrompts: [Prompt] {
         let file = store.captionFileName
-        return [
+        let list: [(String, String)] = [
             (String(localized: "快速校正"),
              String(localized: "照 README 校正「\(file)」，存回原檔")),
             (String(localized: "完整校正（附修改清單）"),
@@ -823,7 +833,22 @@ struct ProofreadGuide: View {
             (String(localized: "整理術語表"),
              String(localized: "讀「\(file)」，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。")),
             (String(localized: "寫社群貼文"),
-             String(localized: "讀「\(file)」，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。")),
+             String(localized: "讀「\(file)」，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。存成「\(store.postFileURL.lastPathComponent)」，只放貼文內文。")),
+        ]
+        return list.map { title, text in
+            Prompt(title: title, preview: store.withNote(text), make: { store.withNote(text) })
+        }
+    }
+
+    /// 所有專案一起：互相參考前後文
+    private var allPrompts: [Prompt] {
+        [
+            Prompt(title: String(localized: "校正所有專案"),
+                   preview: String(localized: "一次校正所有專案的字幕檔，互相參考前後文、人名與術語，並帶上各專案的備註"),
+                   make: { store.proofreadAllPrompt() }),
+            Prompt(title: String(localized: "所有專案寫貼文"),
+                   preview: String(localized: "幫每個專案各寫一則貼文，跨專案補足背景，並帶上各專案的備註；寫好會顯示在各專案的字幕頁"),
+                   make: { store.postsAllPrompt() }),
         ]
     }
 
@@ -835,40 +860,128 @@ struct ProofreadGuide: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                ForEach(Array(prompts.enumerated()), id: \.offset) { i, prompt in
-                    HStack(alignment: .top, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(prompt.title).font(.caption.weight(.semibold))
-                            Text(prompt.text)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(3)
-                                .textSelection(.enabled)
-                        }
-                        Spacer(minLength: 4)
-                        Button {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(prompt.text, forType: .string)
-                            copiedIndex = i
-                            Task {
-                                try? await Task.sleep(for: .seconds(1.5))
-                                if copiedIndex == i { copiedIndex = nil }
-                            }
-                        } label: {
-                            Label(copiedIndex == i ? "已複製" : "複製",
-                                  systemImage: copiedIndex == i ? "checkmark" : "doc.on.doc")
-                        }
-                        .controlSize(.small)
-                        .fixedSize()
-                    }
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+                Text("這個專案").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(projectPrompts, id: \.title) { row($0) }
+
+                Text("所有專案").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                    .padding(.top, 2)
+                ForEach(allPrompts, id: \.title) { row($0) }
+                if emptyNote {
+                    Text("還沒有任何專案有字幕，先產生字幕再試")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
             .padding(.top, 4)
         } label: {
-            Label("用 LLM 校正字幕", systemImage: "sparkles")
+            Label("用 LLM 校正字幕、寫貼文", systemImage: "sparkles")
                 .font(.caption.weight(.medium))
+        }
+    }
+
+    private func row(_ prompt: Prompt) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(prompt.title).font(.caption.weight(.semibold))
+                Text(prompt.preview)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .textSelection(.enabled)
+            }
+            Spacer(minLength: 4)
+            Button {
+                guard let text = prompt.make() else {
+                    emptyNote = true
+                    return
+                }
+                emptyNote = false
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                copiedTitle = prompt.title
+                Task {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    if copiedTitle == prompt.title { copiedTitle = nil }
+                }
+            } label: {
+                Label(copiedTitle == prompt.title ? "已複製" : "複製",
+                      systemImage: copiedTitle == prompt.title ? "checkmark" : "doc.on.doc")
+            }
+            .controlSize(.small)
+            .fixedSize()
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+    }
+}
+
+// MARK: - 專案備註：給 LLM 的背景（場合、日期、人物）
+
+struct ProjectNoteField: View {
+    @EnvironmentObject var store: AppStore
+    @State private var text = ""
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "note.text").foregroundStyle(.secondary).font(.caption)
+            TextField("備註（例如：11/11 某某立院質詢國防部長），複製指令時會一起帶上", text: $text, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.caption)
+                .lineLimit(1...4)
+                .onSubmit { store.setCurrentNote(text) }
+        }
+        .padding(6)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.08)))
+        .onAppear { text = store.currentNote }
+        .onChange(of: store.currentProjectID) { text = store.currentNote }
+        .onChange(of: text) { store.setCurrentNote(text) }
+    }
+}
+
+// MARK: - LLM 寫好的社群貼文
+
+struct ProjectPostCard: View {
+    @EnvironmentObject var store: AppStore
+    @AppStorage("postCardExpanded") private var expanded = true
+    @State private var copied = false
+
+    var body: some View {
+        if let post = store.currentPost {
+            DisclosureGroup(isExpanded: $expanded) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(post)
+                        .font(.caption)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack {
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(post, forType: .string)
+                            copied = true
+                            Task {
+                                try? await Task.sleep(for: .seconds(1.5))
+                                copied = false
+                            }
+                        } label: {
+                            Label(copied ? "已複製" : "複製貼文", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        }
+                        Button {
+                            store.revealPost()
+                        } label: {
+                            Label("在 Finder 顯示", systemImage: "folder")
+                        }
+                        Spacer()
+                    }
+                    .controlSize(.small)
+                }
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+                .padding(.top, 4)
+            } label: {
+                Label("社群貼文", systemImage: "text.bubble")
+                    .font(.caption.weight(.medium))
+            }
         }
     }
 }

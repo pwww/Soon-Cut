@@ -133,6 +133,8 @@ enum SRTWriter {
 
 /// ~/Movies/Soon-Cut/Captions/
 ///   <專案名稱>.srt  各專案的字幕（時間對應該專案的「全片」）；外部改完存檔，打開那個專案時會套回
+///   <專案名稱>.post.md  LLM 寫好的社群貼文，會顯示在那個專案的字幕頁
+///   projects.md     所有專案的檔名與備註（Soon-Cut 自動更新）
 ///   README.md       給 LLM 的校正規則
 ///   glossary.md     使用者自己的術語、人名清單（不會被覆蓋）
 enum CaptionWorkspace {
@@ -157,6 +159,30 @@ enum CaptionWorkspace {
 
     static func fileURL(for project: ProjectInfo, among all: [ProjectInfo]) -> URL {
         dir.appendingPathComponent(fileName(for: project, among: all))
+    }
+
+    /// 專案的社群貼文：跟校正檔同名，副檔名 .post.md
+    static func postURL(for project: ProjectInfo, among all: [ProjectInfo]) -> URL {
+        let srt = fileName(for: project, among: all)
+        return dir.appendingPathComponent(String(srt.dropLast(4)) + ".post.md")
+    }
+
+    static var indexURL: URL { dir.appendingPathComponent("projects.md") }
+
+    /// projects.md：讓 LLM 知道有哪些專案、各自的背景
+    static func writeIndex(_ projects: [ProjectInfo]) {
+        var lines = ["# Soon-Cut 專案 / Projects", "",
+                     "Soon-Cut 會自動更新這個檔案，請不要修改。/ Soon-Cut keeps this file up to date — don't edit it.", ""]
+        for p in projects.sorted(by: { $0.createdAt < $1.createdAt }) {
+            lines.append("## \(p.name)")
+            lines.append("- 字幕 / Captions: `\(fileName(for: p, among: projects))`")
+            lines.append("- 貼文 / Post: `\(postURL(for: p, among: projects).lastPathComponent)`")
+            if let note = p.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                lines.append("- 備註 / Note: \(note.replacingOccurrences(of: "\n", with: " "))")
+            }
+            lines.append("")
+        }
+        try? lines.joined(separator: "\n").write(to: indexURL, atomically: true, encoding: .utf8)
     }
 
     static var readmeURL: URL { dir.appendingPathComponent("README.md") }
@@ -185,6 +211,14 @@ enum CaptionWorkspace {
     - 改編號或時間軸 `00:00:00,000 --> ...`／change the numbers or timestamps
     - 合併、拆分、新增或刪除句子（句數要一樣）／merge, split, add or remove lines (keep the same count)
     - 加上說明文字或 Markdown／add notes or Markdown to the SRT
+
+    ## 多個專案 / Several projects
+    - `projects.md` 列出所有專案的檔名和使用者寫的**備註**（場合、日期、人物等背景），請以備註為準／`projects.md` lists every project with the user's **note** (occasion, date, people) — trust the note
+    - 同一系列的專案可以互相參考前後文、人名與術語，但每個檔案只改自己的內容／related projects can be used as context for each other, but only change each file's own text
+
+    ## 社群貼文 / Social posts
+    請存成跟字幕同名的 `.post.md`（例如 `市民大道.srt` → `市民大道.post.md`），只放貼文內文；Soon-Cut 會顯示在那個專案的字幕頁。
+    Save each post next to its captions as `.post.md` (e.g. `Demo.srt` → `Demo.post.md`), post text only. Soon-Cut shows it on that project's Captions page.
 
     要從影片剪掉某一句，請回到 Soon-Cut 按那一句旁邊的剪刀。
     To cut a line out of the video, use the scissors next to it in Soon-Cut.

@@ -178,6 +178,8 @@ struct ProjectInfo: Codable, Identifiable, Equatable {
     var name: String
     var createdAt: Date
     var updatedAt: Date
+    /// 使用者寫的背景說明（場合、日期、人物…）；給 LLM 校正字幕和寫貼文時參考
+    var note: String?
 }
 
 enum Projects {
