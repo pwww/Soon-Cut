@@ -149,7 +149,7 @@ actor Transcriber {
                 }
             }
         }
-        all.sort { $0.start < $1.start }
+        all = Self.removeOverlaps(all)
         let lang = spoken ?? "zh"
         let cleaned = all.compactMap { seg -> SubtitleSegment? in
             let text = Self.clean(seg.text, chinese: lang == "zh")
@@ -160,6 +160,35 @@ actor Transcriber {
     }
 
     /// 轉寫時間軸上的一小段；回傳的時間從這一小段的開頭算起
+    /// 接著轉、補洞時偶爾會多出一句「蓋住好幾句」的長字幕（內容通常重複），
+    /// 預覽時它會把底下那幾句擋掉。先丟掉這種長句，剩下的重疊再把前一句的結尾截齊。
+    static func removeOverlaps(_ input: [SubtitleSegment]) -> [SubtitleSegment] {
+        func overlap(_ a: SubtitleSegment, _ b: SubtitleSegment) -> Double {
+            max(0, min(a.end, b.end) - max(a.start, b.start))
+        }
+        let sorted = input.sorted { $0.start < $1.start }
+        let kept = sorted.filter { seg in
+            let duration = seg.end - seg.start
+            // 跟兩句以上的別句大幅重疊，而且比它們長很多＝蓋住別人的那一句
+            let covered = sorted.filter { other in
+                other.id != seg.id
+                    && overlap(seg, other) > 0.5 * (other.end - other.start)
+                    && duration > 1.5 * (other.end - other.start)
+            }
+            return covered.count < 2
+        }
+        var result: [SubtitleSegment] = []
+        for var seg in kept {
+            if var last = result.last, seg.start < last.end {
+                if seg.end <= last.end { continue }             // 整句被前一句包住
+                last.end = seg.start                            // 前一句截到這句開頭
+                if last.end - last.start < 0.2 { result.removeLast() } else { result[result.count - 1] = last }
+            }
+            if seg.end - seg.start >= 0.2 { result.append(seg) }
+        }
+        return result
+    }
+
     /// 超過這麼多秒沒有字幕，就當成可能漏掉、補轉一次
     static let holeThreshold: Double = 3
 

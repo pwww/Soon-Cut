@@ -19,7 +19,8 @@ final class OverlayState: @unchecked Sendable {
     func images(at time: Double) -> (subtitle: CIImage?, watermark: CIImage?) {
         lock.lock()
         defer { lock.unlock() }
-        let sub = subtitles.first { time >= $0.start && time < $0.end }?.image
+        // 時間重疊時，以「最近開始」的那一句為準，長句才不會把後面的句子擋住
+        let sub = subtitles.last { time >= $0.start && time < $0.end }?.image
         return (sub, watermark)
     }
 }
@@ -40,6 +41,7 @@ enum Renderer {
         if watermark, let image = SubtitleRenderer.watermarkImage(canvas: canvas), let ci = ciImage(from: image) {
             wm = place(ci, in: SubtitleRenderer.watermarkFrame(imageSize: image.size, canvas: canvas))
         }
+        items.sort { $0.start < $1.start }
         state.update(subtitles: items, watermark: wm)
     }
 
