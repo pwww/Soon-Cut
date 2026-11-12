@@ -120,7 +120,9 @@ actor Transcriber {
 
             // 補洞：Whisper 有時會把整個 30 秒視窗判成「沒說話」直接跳過（新聞、背景音多時常見），
             // 字幕就會整段消失。找出這一段裡超過 3 秒沒有字幕的地方，放寬門檻再轉一次。
-            let found = all[firstIndex...].sorted { $0.start < $1.start }
+            // 找洞要用「最後真的會留下來」的字幕：空白、腦補、蓋住別句的長句最後都會被丟掉，
+            // 如果拿它們來算，洞會被它們遮住（例如一句 14～35 秒的重複長句被丟掉後，中間就整段沒字幕）
+            let found = Self.removeOverlaps(all[firstIndex...].filter { !Self.looksLikeHallucination($0.text) })
             var holes: [ClipRange] = []
             var cursor = piece.start
             for seg in found {
@@ -149,7 +151,7 @@ actor Transcriber {
                 }
             }
         }
-        all = Self.removeOverlaps(all)
+        all = Self.removeOverlaps(all.filter { !Self.looksLikeHallucination($0.text) })
         let lang = spoken ?? "zh"
         let cleaned = all.compactMap { seg -> SubtitleSegment? in
             let text = Self.clean(seg.text, chinese: lang == "zh")

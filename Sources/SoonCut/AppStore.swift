@@ -1295,6 +1295,53 @@ final class AppStore: ObservableObject {
         restore(next)
     }
 
+    // MARK: 補字幕：字幕稿裡沒抓到的空白段，重新辨識那一段
+
+    /// 正在重新辨識的空白段
+    @Published private(set) var fillingGap: ClipRange?
+
+    /// 字幕要翻譯成別的語言時不提供（補進來的句子還沒翻譯，會跟其他句不一致）
+    var canFillGaps: Bool {
+        guard let spoken = spokenLanguage else { return true }
+        return !subtitleLanguage.needsTranslation(from: spoken)
+    }
+
+    func fillGap(start: Double, end: Double) {
+        guard fillingGap == nil, !isTranscribing, !isExporting, canFillGaps else { return }
+        let projectID = currentProjectID
+        let clips = activeClips
+        let speech = spokenLanguage
+        let gap = ClipRange(start: max(0, start - 0.3), end: end + 0.3)
+        fillingGap = ClipRange(start: start, end: end)
+        captionNote = nil
+        Task {
+            defer { fillingGap = nil }
+            do {
+                let built = try await Composer.build(clips: clips)
+                let result = try await transcriber.transcribe(asset: built.composition, pieces: [gap], language: speech)
+                guard projectID == currentProjectID else { return }
+                // 只收真的落在空白段裡的句子，避免跟前後已有的字幕重複
+                let new = result.segments.compactMap { seg -> SubtitleSegment? in
+                    let s = max(seg.start, start), e = min(seg.end, end)
+                    guard e - s > 0.2 else { return nil }
+                    return SubtitleSegment(start: s, end: e, text: seg.text)
+                }
+                guard !new.isEmpty else {
+                    captionNote = String(localized: "這一段沒有辨識到說話")
+                    return
+                }
+                recordEdit(String(localized: "補字幕"))
+                sourceSubtitles = (sourceSubtitles + new).sorted { $0.start < $1.start }
+                let display = Self.localized(new, spoken: result.language, target: subtitleLanguage)
+                subtitles = (subtitles + display).sorted { $0.start < $1.start }
+                saveSubtitles()
+                captionNote = String(localized: "補上 \(new.count) 句字幕")
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     func clearEditHistory() {
         undoStack.removeAll()
         redoStack.removeAll()

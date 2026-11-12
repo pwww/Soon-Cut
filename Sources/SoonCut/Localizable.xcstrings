@@ -57,6 +57,16 @@
         }
       }
     },
+    "%@–%@ 沒有字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No captions %@–%@"
+          }
+        }
+      }
+    },
     "%@－片段" : {
       "localizations" : {
         "en" : {
@@ -219,6 +229,7 @@
       "shouldTranslate" : false
     },
     "captions.srt 會一直跟著字幕更新。讓本機 LLM 連這個資料夾校正術語、人名、錯別字，存檔後 Soon-Cut 會自動套回來" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -229,6 +240,7 @@
       }
     },
     "captions.srt 沒有新的修改" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2624,6 +2636,16 @@
         }
       }
     },
+    "漏抓字幕時按這裡，只重新辨識這一段，其他字幕不動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If captions were missed here, transcribe just this part again. Other captions stay as they are."
+          }
+        }
+      }
+    },
     "無字幕" : {
       "localizations" : {
         "en" : {
@@ -2709,6 +2731,7 @@
       }
     },
     "照 README 校正 captions.srt，存回原檔" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2797,6 +2820,7 @@
       }
     },
     "用 LLM 校正字幕" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3270,6 +3294,26 @@
         }
       }
     },
+    "補上 %lld 句字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added %lld captions"
+          }
+        }
+      }
+    },
+    "補字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in captions"
+          }
+        }
+      }
+    },
     "複製" : {
       "localizations" : {
         "en" : {
@@ -3323,6 +3367,7 @@
       }
     },
     "讀 captions.srt，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3333,6 +3378,7 @@
       }
     },
     "讀 captions.srt，把影片裡出現的人名、機構、地名和專有名詞整理成正確寫法的清單，加到 glossary.md 最後面（保留原本的內容）。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3343,6 +3389,7 @@
       }
     },
     "讀「%@」，幫我寫一則 Threads 貼文：開頭一句抓注意力、三個重點、結尾一個提問，500 字以內，語氣口語。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3389,6 +3436,7 @@
       }
     },
     "讀這個資料夾的 README.md 和 glossary.md，校正 captions.srt 的錯別字、同音字、人名、機構與專有名詞（不確定的請上網查證）。不要改編號、時間軸和句數。改完直接存回 captions.srt，最後列出你改了哪些句子，以及沒把握所以沒改的地方。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3731,6 +3779,26 @@
         }
       }
     },
+    "辨識中…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing…"
+          }
+        }
+      }
+    },
+    "這一段沒有辨識到說話" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No speech found in this part"
+          }
+        }
+      }
+    },
     "這個專案" : {
       "localizations" : {
         "en" : {
@@ -3979,6 +4047,7 @@
       }
     },
     "重新讀取字幕校正資料夾裡的 captions.srt，套用外部的修改" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4027,6 +4096,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新轉寫會覆蓋目前的字幕修改"
+          }
+        }
+      }
+    },
+    "重新辨識" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribe again"
           }
         }
       }

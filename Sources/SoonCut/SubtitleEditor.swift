@@ -429,6 +429,15 @@ struct SubtitleEditor: View {
         }
     }
 
+    /// 這一句之前超過 3 秒沒有字幕：可能是漏抓，給一個「重新辨識」的入口
+    private func gapBefore(_ seg: SubtitleSegment) -> ClipRange? {
+        guard store.canFillGaps, !store.isTranscribing,
+              let i = store.subtitles.firstIndex(where: { $0.id == seg.id }) else { return nil }
+        let prevEnd = i == 0 ? 0 : store.subtitles[..<i].map(\.end).max() ?? 0
+        guard seg.start - prevEnd > Transcriber.holeThreshold else { return nil }
+        return ClipRange(start: prevEnd, end: seg.start)
+    }
+
     private var subtitleList: some View {
         // 校正說明和貼文放在捲動區裡，展開很長時也能捲到下面的字幕
         ScrollView {
@@ -450,6 +459,9 @@ struct SubtitleEditor: View {
             }
             LazyVStack(alignment: .leading, spacing: 4) {
                 ForEach(store.subtitles) { seg in
+                    if let gap = gapBefore(seg) {
+                        GapRow(start: gap.start, end: gap.end)
+                    }
                     SubtitleRow(
                         segment: seg,
                         isCurrent: currentTime >= seg.start && currentTime < seg.end,
@@ -988,6 +1000,45 @@ struct ProjectPostCard: View {
                     .font(.caption.weight(.medium))
             }
         }
+    }
+}
+
+// MARK: - 字幕稿裡的空白段
+
+struct GapRow: View {
+    @EnvironmentObject var store: AppStore
+    let start: Double
+    let end: Double
+
+    private var isFilling: Bool {
+        guard let g = store.fillingGap else { return false }
+        return abs(g.start - start) < 0.01 && abs(g.end - end) < 0.01
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "text.badge.xmark").foregroundStyle(.orange)
+            Text("\(formatTime(start))–\(formatTime(end)) 沒有字幕")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 4)
+            if isFilling {
+                ProgressView().controlSize(.small)
+                Text("辨識中…").font(.caption).foregroundStyle(.secondary)
+            } else {
+                Button {
+                    store.fillGap(start: start, end: end)
+                } label: {
+                    Label("重新辨識", systemImage: "waveform.badge.magnifyingglass")
+                }
+                .controlSize(.small)
+                .disabled(store.fillingGap != nil || store.isExporting)
+                .help("漏抓字幕時按這裡，只重新辨識這一段，其他字幕不動")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.orange.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
     }
 }
 
