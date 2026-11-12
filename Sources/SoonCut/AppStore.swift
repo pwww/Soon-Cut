@@ -37,6 +37,21 @@ private struct SubtitleFile: Codable {
     var segments: [SubtitleSegment]
     var sourceSegments: [SubtitleSegment]?   // 原文（語音語言）
     var spokenLanguage: String?              // Whisper 語言代碼
+    var needsTranslation: Bool?              // 背景轉完、還沒翻譯成字幕語言
+}
+
+// MARK: - 背景工作：產生字幕、輸出影片各自排隊；切換專案時照樣進行
+
+enum JobKind: Equatable {
+    case transcribe, export
+}
+
+struct BackgroundJob: Identifiable, Equatable {
+    let id = UUID()
+    let kind: JobKind
+    let projectID: UUID
+    var projectName: String
+    var isRunning = false
 }
 
 @MainActor
@@ -319,7 +334,8 @@ final class AppStore: ObservableObject {
     private var isSwitchingProject = false
 
     var currentProject: ProjectInfo? { projects.first { $0.id == currentProjectID } }
-    var canSwitchProject: Bool { !isRecording && !isExporting && !isTranscribing && !isBusy }
+    /// 產生字幕、輸出在背景照跑，切換專案只在錄影中不行
+    var canSwitchProject: Bool { !isRecording && !isBusy }
 
     private func setUpProjects() {
         projects = Projects.migrateIfNeeded()
@@ -332,6 +348,11 @@ final class AppStore: ObservableObject {
     func switchProject(to id: UUID) {
         guard id != currentProjectID, canSwitchProject, projects.contains(where: { $0.id == id }) else { return }
         touchCurrentProject()
+        if translatingProjectID == currentProjectID {
+            // 翻譯是在字幕畫面跑的：先停下，下次打開這個專案會接著翻（已記在 subtitles.json）
+            translatingProjectID = nil
+            translationConfig = nil
+        }
         isSwitchingProject = true
         clearEditHistory()
         subtitles = []
@@ -375,6 +396,7 @@ final class AppStore: ObservableObject {
     /// 刪除專案：資料夾丟到垃圾桶；只有這個專案用到的影片檔也一起丟（都可以從垃圾桶救回）
     func deleteCurrentProject() {
         guard projects.count > 1, canSwitchProject,
+              !jobs.contains(where: { $0.projectID == currentProjectID }),
               let doomed = projects.first(where: { $0.id == currentProjectID }) else { return }
         let ownFiles = Set(clips.map { $0.url.lastPathComponent })
         let othersUse = Projects.filesUsed(excluding: doomed.id)
@@ -612,9 +634,72 @@ final class AppStore: ObservableObject {
         }.joined(separator: "|")
     }
 
+    // MARK: - 背景工作佇列
+
+    @Published private(set) var jobs: [BackgroundJob] = []
+    private var jobWork: [UUID: () async -> Void] = [:]
+    /// 正在轉寫的是哪個專案（進度畫面只在那個專案顯示）
+    @Published private(set) var transcribeProjectID: UUID?
+    /// 正在輸出的是哪個專案
+    @Published private(set) var exportProjectID: UUID?
+    /// 正在翻譯字幕的專案（翻譯在字幕畫面進行，只限目前專案）
+    @Published private(set) var translatingProjectID: UUID?
+
+    private func enqueue(_ kind: JobKind, work: @escaping () async -> Void) {
+        let job = BackgroundJob(kind: kind, projectID: currentProjectID,
+                                projectName: currentProject?.name ?? "")
+        jobs.append(job)
+        jobWork[job.id] = work
+        runNext(kind)
+    }
+
+    private func runNext(_ kind: JobKind) {
+        guard !jobs.contains(where: { $0.kind == kind && $0.isRunning }),
+              let i = jobs.firstIndex(where: { $0.kind == kind }) else { return }
+        jobs[i].isRunning = true
+        let id = jobs[i].id
+        let work = jobWork.removeValue(forKey: id)
+        Task {
+            await work?()
+            jobs.removeAll { $0.id == id }
+            runNext(kind)
+        }
+    }
+
+    /// 取消目前專案還在排隊（尚未開始）的工作
+    func cancelQueued(_ kind: JobKind) {
+        let ids = jobs.filter { $0.kind == kind && $0.projectID == currentProjectID && !$0.isRunning }.map(\.id)
+        jobs.removeAll { ids.contains($0.id) }
+        ids.forEach { jobWork[$0] = nil }
+    }
+
+    func job(_ kind: JobKind, for project: UUID) -> BackgroundJob? {
+        jobs.first { $0.kind == kind && $0.projectID == project }
+    }
+
+    /// 這個專案的工作排在第幾個（1＝下一個），以及前面正在做的是哪個專案
+    func queueInfo(_ kind: JobKind) -> (position: Int, runningProject: String)? {
+        let list = jobs.filter { $0.kind == kind }
+        guard let mine = list.firstIndex(where: { $0.projectID == currentProjectID }), !list[mine].isRunning else { return nil }
+        let running = list.first(where: \.isRunning)?.projectName ?? ""
+        return (mine, running)
+    }
+
+    /// 別的專案正在做這類工作（這個專案按下去會排隊）
+    func otherProjectBusy(_ kind: JobKind) -> String? {
+        jobs.first { $0.kind == kind && $0.isRunning && $0.projectID != currentProjectID }?.projectName
+    }
+
+    private func projectName(_ id: UUID) -> String { projects.first { $0.id == id }?.name ?? "" }
+
     // MARK: - 字幕
 
-    var isTranscribing: Bool { subtitleStatus != nil }
+    /// 目前專案有字幕工作（排隊、轉寫中或翻譯中）
+    var isTranscribing: Bool {
+        job(.transcribe, for: currentProjectID) != nil || translatingProjectID == currentProjectID
+    }
+    /// 進度畫面要不要在這個專案顯示
+    var transcribeRunningHere: Bool { subtitleStatus != nil && transcribeProjectID == currentProjectID }
 
     /// 有字幕，但片段在轉寫後又被剪過或重排
     var subtitlesOutdated: Bool {
@@ -624,52 +709,70 @@ final class AppStore: ObservableObject {
     func transcribeSequence() {
         guard !isTranscribing, !activeClips.isEmpty else { return }
         clearEditHistory()
+        let projectID = currentProjectID
         let key = sequenceKey
         let currentClips = activeClips
-        Task {
-            let modelReady = await transcriber.isModelLoaded
-            let firstTime = !modelReady
+        let speech = speechLanguage.whisperCode
+        let target = subtitleLanguage
+        enqueue(.transcribe) { [weak self] in
+            await self?.runTranscription(projectID: projectID, key: key, clips: currentClips,
+                                         speech: speech, target: target)
+        }
+    }
+
+    private func runTranscription(projectID: UUID, key: String, clips: [Clip],
+                                  speech: String?, target: SubtitleLanguage) async {
+        transcribeProjectID = projectID
+        let modelReady = await transcriber.isModelLoaded
+        let firstTime = !modelReady
+        if firstTime {
+            if Transcriber.isModelDownloaded { showPreparing() } else { showDownloading() }
+        }
+        do {
             if firstTime {
-                if Transcriber.isModelDownloaded {
-                    showPreparing()
-                } else {
-                    showDownloading()
+                _ = try await transcriber.loadModel { [weak self] phase in
+                    Task { @MainActor in self?.apply(phase) }
                 }
             }
-            do {
-                if firstTime {
-                    _ = try await transcriber.loadModel { [weak self] phase in
-                        Task { @MainActor in self?.apply(phase) }
-                    }
-                }
-                stopDownloadMonitor()
-                setStep(firstTime ? "3/3" : nil,
-                        String(localized: "轉寫字幕"),
-                        firstTime ? String(localized: "模型準備好了，正在轉寫，通常比影片長度快很多。") : nil)
-                let result = try await Composer.build(clips: currentClips)
-                let transcript = try await transcriber.transcribe(asset: result.composition,
-                                                                  pieces: result.pieces,
-                                                                  language: speechLanguage.whisperCode)
+            stopDownloadMonitor()
+            setStep(firstTime ? "3/3" : nil,
+                    String(localized: "轉寫字幕"),
+                    firstTime ? String(localized: "模型準備好了，正在轉寫，通常比影片長度快很多。") : nil)
+            let result = try await Composer.build(clips: clips)
+            let transcript = try await transcriber.transcribe(asset: result.composition,
+                                                              pieces: result.pieces,
+                                                              language: speech)
+            let display = Self.localized(transcript.segments, spoken: transcript.language, target: target)
+            let needsTranslation = target.needsTranslation(from: transcript.language)
+            if projectID == currentProjectID {
                 sourceSubtitles = transcript.segments
                 spokenLanguage = transcript.language
                 subtitlesKey = key
+                subtitles = display
                 errorMessage = nil
-                stopDownloadMonitor()
-                if subtitleLanguage.needsTranslation(from: transcript.language) {
-                    startTranslation()   // 翻譯完才結束進度顯示
-                    return
-                }
-                subtitles = localized(sourceSubtitles)
                 saveSubtitles()
-            } catch {
-                errorMessage = String(localized: "轉寫失敗：\(Self.describe(error))")
+                if needsTranslation { startTranslation() }
+            } else {
+                // 使用者已經切到別的專案：直接存進原專案，回去時就看得到
+                let file = SubtitleFile(sequenceKey: key, segments: display, sourceSegments: transcript.segments,
+                                        spokenLanguage: transcript.language,
+                                        needsTranslation: needsTranslation ? true : nil)
+                if let data = try? JSONEncoder().encode(file) {
+                    try? data.write(to: Projects.folder(projectID).appendingPathComponent("subtitles.json"), options: .atomic)
+                }
             }
-            stopDownloadMonitor()
-            subtitleStatus = nil
-            subtitleStep = nil
-            subtitleDetail = nil
-            subtitleStatusStart = nil
+        } catch {
+            let name = projectName(projectID)
+            errorMessage = projectID == currentProjectID
+                ? String(localized: "轉寫失敗：\(Self.describe(error))")
+                : String(localized: "「\(name)」轉寫失敗：\(Self.describe(error))")
         }
+        stopDownloadMonitor()
+        subtitleStatus = nil
+        subtitleStep = nil
+        subtitleDetail = nil
+        subtitleStatusStart = nil
+        transcribeProjectID = nil
     }
 
     private func apply(_ phase: ModelLoadPhase) {
@@ -754,7 +857,11 @@ final class AppStore: ObservableObject {
 
     /// 語音是中文時，依字幕語言決定繁簡；其他情況原文照用
     private func localized(_ segments: [SubtitleSegment]) -> [SubtitleSegment] {
-        guard spokenLanguage == "zh", subtitleLanguage == .zhHans else { return segments }
+        Self.localized(segments, spoken: spokenLanguage, target: subtitleLanguage)
+    }
+
+    static func localized(_ segments: [SubtitleSegment], spoken: String?, target: SubtitleLanguage) -> [SubtitleSegment] {
+        guard spoken == "zh", target == .zhHans else { return segments }
         return segments.map { var s = $0; s.text = ChineseScript.toSimplified(s.text); return s }
     }
 
@@ -774,8 +881,8 @@ final class AppStore: ObservableObject {
         // 中文原文已經是繁體
         let source = Locale.Language(identifier: spoken == "zh" ? "zh-Hant" : spoken)
         let config = TranslationSession.Configuration(source: source, target: Locale.Language(identifier: target))
-        setStep(nil, String(localized: "翻譯成\(subtitleLanguage.label)"),
-                String(localized: "使用 macOS 內建的本機翻譯，不會上傳。第一次翻譯某種語言時，系統會請你下載語言包。"))
+        translatingProjectID = currentProjectID
+        saveSubtitles()   // 先記下「還沒翻譯」，中途切走專案也不會忘
         if translationConfig == config {
             translationConfig?.invalidate()   // 同樣的設定也要重新跑一次
         } else {
@@ -785,6 +892,8 @@ final class AppStore: ObservableObject {
 
     /// 字幕畫面翻譯完成後呼叫
     func applyTranslations(_ translated: [String: String]) {
+        guard translatingProjectID == currentProjectID else { return }   // 翻譯途中切走了專案
+        translatingProjectID = nil
         subtitles = sourceSubtitles.map { seg in
             var s = seg
             if let t = translated[seg.id.uuidString] { s.text = t }
@@ -795,6 +904,8 @@ final class AppStore: ObservableObject {
     }
 
     func translationFailed(_ error: Error) {
+        guard translatingProjectID == currentProjectID else { return }
+        translatingProjectID = nil
         errorMessage = String(localized: "翻譯失敗：\(Self.describe(error))（字幕先保留原文）")
         subtitles = sourceSubtitles
         saveSubtitles()
@@ -802,10 +913,7 @@ final class AppStore: ObservableObject {
     }
 
     private func finishSubtitleStatus() {
-        subtitleStatus = nil
-        subtitleStep = nil
-        subtitleDetail = nil
-        subtitleStatusStart = nil
+        translatingProjectID = nil
     }
 
     func updateSubtitle(id: UUID, text: String) {
@@ -890,7 +998,8 @@ final class AppStore: ObservableObject {
 
     private func saveSubtitles() {
         let file = SubtitleFile(sequenceKey: subtitlesKey ?? "", segments: subtitles,
-                                sourceSegments: sourceSubtitles, spokenLanguage: spokenLanguage)
+                                sourceSegments: sourceSubtitles, spokenLanguage: spokenLanguage,
+                                needsTranslation: translatingProjectID == currentProjectID ? true : nil)
         if let data = try? JSONEncoder().encode(file) {
             try? data.write(to: subtitlesURL, options: .atomic)
         }
@@ -1151,11 +1260,18 @@ final class AppStore: ObservableObject {
         sourceSubtitles = file.sourceSegments ?? file.segments
         spokenLanguage = file.spokenLanguage
         subtitlesKey = file.sequenceKey.isEmpty ? nil : file.sequenceKey
+        // 在背景轉完、還沒翻譯的：打開專案時接著翻
+        if file.needsTranslation == true, let spoken = spokenLanguage, subtitleLanguage.needsTranslation(from: spoken) {
+            startTranslation()
+        }
     }
 
     // MARK: - 輸出
 
-    var isExporting: Bool { exportStatus != nil }
+    /// 目前專案有輸出工作（排隊或輸出中）
+    var isExporting: Bool { job(.export, for: currentProjectID) != nil }
+    /// 進度要不要在這個專案顯示
+    var exportRunningHere: Bool { exportStatus != nil && exportProjectID == currentProjectID }
 
     /// 只輸出字幕檔（SRT），不合成影片。讓使用者選存放位置。
     func exportSubtitlesOnly() {
@@ -1191,40 +1307,62 @@ final class AppStore: ObservableObject {
     /// - Parameter burnCaptions: false＝只輸出影片，不把字幕燒進畫面（字幕稿 .srt 仍會放在旁邊）
     func exportVideo(burnCaptions: Bool = true) {
         guard !isExporting, !activeClips.isEmpty else { return }
-        let url = OutputLibrary.newExportURL()
-        exportStatus = String(localized: "輸出中…")
-        exportProgress = 0
+        let projectID = currentProjectID
+        let clips = activeClips
         let format = outputFormat
         let quality = exportQuality
+        let style = subtitleStyle
         let captions = effectiveSubtitles
-        Task {
-            do {
-                let duration = try await Exporter.export(
-                    clips: activeClips, subtitles: burnCaptions ? captions : [], style: subtitleStyle,
-                    format: format, quality: quality, to: url,
-                    progress: { [weak self] p in
-                        Task { @MainActor in
-                            if self?.exportStatus != nil { self?.exportProgress = p }
-                        }
-                    })
-                let item = ExportItem(file: url.lastPathComponent, status: .latest,
-                                      createdAt: Date(), duration: duration,
-                                      format: burnCaptions || captions.isEmpty
-                                          ? "\(format.label) · \(quality.label)"
-                                          : "\(format.label) · \(quality.label) · \(String(localized: "無字幕"))")
-                // 同名 .srt 字幕稿（失敗不影響影片本身）
-                try? SRTWriter.write(captions, nextTo: url)
+        enqueue(.export) { [weak self] in
+            await self?.runExport(projectID: projectID, clips: clips, captions: captions, burn: burnCaptions,
+                                  style: style, format: format, quality: quality)
+        }
+    }
+
+    private func runExport(projectID: UUID, clips: [Clip], captions: [SubtitleSegment], burn: Bool,
+                           style: SubtitleStyle, format: OutputFormat, quality: ExportQuality) async {
+        let url = OutputLibrary.newExportURL()
+        exportProjectID = projectID
+        exportStatus = String(localized: "輸出中…")
+        exportProgress = 0
+        do {
+            let duration = try await Exporter.export(
+                clips: clips, subtitles: burn ? captions : [], style: style,
+                format: format, quality: quality, to: url,
+                progress: { [weak self] p in
+                    Task { @MainActor in
+                        if self?.exportStatus != nil { self?.exportProgress = p }
+                    }
+                })
+            let item = ExportItem(file: url.lastPathComponent, status: .latest,
+                                  createdAt: Date(), duration: duration,
+                                  format: burn || captions.isEmpty
+                                      ? "\(format.label) · \(quality.label)"
+                                      : "\(format.label) · \(quality.label) · \(String(localized: "無字幕"))")
+            // 同名 .srt 字幕稿（失敗不影響影片本身）
+            try? SRTWriter.write(captions, nextTo: url)
+            if projectID == currentProjectID {
                 exports.insert(item, at: 0)
                 OutputLibrary.save(exports)
                 outputTab = .latest
                 previewMode = .output
                 errorMessage = nil
-            } catch {
-                errorMessage = String(localized: "輸出失敗：\(Self.describe(error))")
+            } else {
+                // 已經切到別的專案：加進原專案的輸出清單
+                let indexURL = Projects.folder(projectID).appendingPathComponent("exports.json")
+                var list = (try? Data(contentsOf: indexURL)).flatMap { try? JSONDecoder().decode([ExportItem].self, from: $0) } ?? []
+                list.insert(item, at: 0)
+                if let data = try? JSONEncoder().encode(list) { try? data.write(to: indexURL, options: .atomic) }
+                captionNote = String(localized: "「\(projectName(projectID))」的影片輸出完成")
             }
-            exportStatus = nil
-            exportProgress = nil
+        } catch {
+            errorMessage = projectID == currentProjectID
+                ? String(localized: "輸出失敗：\(Self.describe(error))")
+                : String(localized: "「\(projectName(projectID))」輸出失敗：\(Self.describe(error))")
         }
+        exportStatus = nil
+        exportProgress = nil
+        exportProjectID = nil
     }
 
     func exports(in status: OutputStatus) -> [ExportItem] {

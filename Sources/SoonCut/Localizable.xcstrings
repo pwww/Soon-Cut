@@ -228,6 +228,76 @@
         }
       }
     },
+    "「%@」正在產生字幕，按下後會排在它後面" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is generating captions; this will wait its turn"
+          }
+        }
+      }
+    },
+    "「%@」正在產生字幕，這個專案排第 %lld 個，輪到時會自動開始" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is generating captions. This project is #%lld in line and starts automatically."
+          }
+        }
+      }
+    },
+    "「%@」正在輸出，按下後會排在它後面" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is exporting; this will wait its turn"
+          }
+        }
+      }
+    },
+    "「%@」正在輸出，這個專案排第 %lld 個，輪到時會自動開始" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is exporting. This project is #%lld in line and starts automatically."
+          }
+        }
+      }
+    },
+    "「%@」的影片輸出完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video export finished for “%@”"
+          }
+        }
+      }
+    },
+    "「%@」輸出失敗：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export failed for “%@”: %@"
+          }
+        }
+      }
+    },
+    "「%@」轉寫失敗：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription failed for “%@”: %@"
+          }
+        }
+      }
+    },
     "一次付費，永久有效" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -770,6 +840,16 @@
         }
       }
     },
+    "前往" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go"
+          }
+        }
+      }
+    },
     "剪掉「%@」" : {
       "localizations" : {
         "en" : {
@@ -913,6 +993,16 @@
         }
       }
     },
+    "取消排隊" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
     "另存為新專案" : {
       "localizations" : {
         "en" : {
@@ -1034,6 +1124,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同時錄麥克風（右鍵選擇麥克風）"
+          }
+        }
+      }
+    },
+    "同類型的工作一次做一個，其他的會排隊；字幕和輸出可以同時進行。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One job of each kind runs at a time and the rest wait; captions and exports can run together."
           }
         }
       }
@@ -1972,6 +2072,56 @@
         }
       }
     },
+    "排隊產生字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for captions"
+          }
+        }
+      }
+    },
+    "排隊產生字幕中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting to generate captions"
+          }
+        }
+      }
+    },
+    "排隊輸出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting to export"
+          }
+        }
+      }
+    },
+    "排隊輸出中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting to export"
+          }
+        }
+      }
+    },
+    "排隊輸出中（第 %lld 個）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued to export (#%lld)"
+          }
+        }
+      }
+    },
     "收合" : {
       "localizations" : {
         "en" : {
@@ -2535,6 +2685,16 @@
         }
       }
     },
+    "產生字幕中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating captions"
+          }
+        }
+      }
+    },
     "用 LLM 校正字幕" : {
       "localizations" : {
         "en" : {
@@ -2886,6 +3046,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻譯成%@"
+          }
+        }
+      }
+    },
+    "翻譯成%@中…（macOS 本機翻譯）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translating to %@… (on-device macOS translation)"
+          }
+        }
+      }
+    },
+    "背景工作" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Work"
+          }
+        }
+      }
+    },
+    "背景工作：產生字幕、輸出影片會在背景進行，切換專案也不會中斷" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background work: captions and exports keep running when you switch projects"
           }
         }
       }

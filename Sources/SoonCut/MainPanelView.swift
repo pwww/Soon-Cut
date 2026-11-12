@@ -168,6 +168,7 @@ struct MainPanelView: View {
     private var regionInfo: some View {
         HStack {
             ProjectMenu()
+            JobsIndicator()
             Group {
                 if let r = store.region {
                     Text("範圍 \(Int(r.rect.width)) × \(Int(r.rect.height)) pt")
@@ -890,6 +891,65 @@ enum TextPrompt {
             alert.beginSheetModal(for: window, completionHandler: handle)
         } else {
             handle(alert.runModal())
+        }
+    }
+}
+
+// MARK: - 背景工作指示：有工作在跑或排隊時顯示，點開看是哪些專案
+
+struct JobsIndicator: View {
+    @EnvironmentObject var store: AppStore
+    @State private var showList = false
+
+    var body: some View {
+        if !store.jobs.isEmpty {
+            Button {
+                showList.toggle()
+            } label: {
+                HStack(spacing: 4) {
+                    ProgressView().controlSize(.mini)
+                    Text("\(store.jobs.count)").font(.caption.monospacedDigit())
+                }
+            }
+            .buttonStyle(.borderless)
+            .help("背景工作：產生字幕、輸出影片會在背景進行，切換專案也不會中斷")
+            .popover(isPresented: $showList, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("背景工作").font(.headline)
+                    ForEach(store.jobs) { job in
+                        HStack(spacing: 8) {
+                            Image(systemName: job.kind == .transcribe ? "captions.bubble" : "square.and.arrow.up")
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(job.projectName).font(.callout.weight(.medium))
+                                Text(statusText(job)).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 12)
+                            if job.projectID != store.currentProjectID {
+                                Button("前往") {
+                                    store.switchProject(to: job.projectID)
+                                    showList = false
+                                }
+                                .controlSize(.small)
+                            }
+                        }
+                    }
+                    Text("同類型的工作一次做一個，其他的會排隊；字幕和輸出可以同時進行。")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .frame(width: 300)
+            }
+        }
+    }
+
+    private func statusText(_ job: BackgroundJob) -> String {
+        switch (job.kind, job.isRunning) {
+        case (.transcribe, true): return store.subtitleStatus ?? String(localized: "產生字幕中")
+        case (.transcribe, false): return String(localized: "排隊產生字幕")
+        case (.export, true): return String(localized: "輸出中 \(Int((store.exportProgress ?? 0) * 100))%")
+        case (.export, false): return String(localized: "排隊輸出")
         }
     }
 }

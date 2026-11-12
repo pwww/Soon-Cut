@@ -269,9 +269,19 @@ struct SubtitleEditor: View {
     private var actionBar: some View {
         VStack(alignment: .trailing, spacing: 4) {
             HStack(spacing: 10) {
-                if let status = store.subtitleStatus {
+                if store.transcribeRunningHere, let status = store.subtitleStatus {
                     TranscribeStatusView(status: status)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let queue = store.queueInfo(.transcribe) {
+                    QueueNotice(kind: .transcribe, position: queue.position, runningProject: queue.runningProject)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if store.translatingProjectID == store.currentProjectID {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text("翻譯成\(store.subtitleLanguage.label)中…（macOS 本機翻譯）")
+                            .font(.caption)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     Button {
                         if store.subtitles.isEmpty {
@@ -285,19 +295,23 @@ struct SubtitleEditor: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.isExporting)
-                    .help(store.subtitles.isEmpty ? "用本機 Whisper 轉寫字幕" : "重新產生會覆蓋目前的字幕與手動修改")
+                    .help(store.otherProjectBusy(.transcribe).map { String(localized: "「\($0)」正在產生字幕，按下後會排在它後面") }
+                          ?? (store.subtitles.isEmpty ? String(localized: "用本機 Whisper 轉寫字幕")
+                                                      : String(localized: "重新產生會覆蓋目前的字幕與手動修改")))
                 }
 
                 Button {
                     store.exportVideo()
                 } label: {
                     Group {
-                        if store.isExporting {
+                        if store.exportRunningHere {
                             HStack(spacing: 6) {
                                 ProgressView().controlSize(.small)
                                 Text("輸出中 \(Int((store.exportProgress ?? 0) * 100))%")
                                     .monospacedDigit()
                             }
+                        } else if let queue = store.queueInfo(.export) {
+                            Label(String(localized: "排隊輸出中（第 \(queue.position) 個）"), systemImage: "hourglass")
                         } else {
                             Label("合成字幕輸出", systemImage: "square.and.arrow.up")
                         }
@@ -306,6 +320,7 @@ struct SubtitleEditor: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(store.isExporting || store.isTranscribing)
+                .help(store.otherProjectBusy(.export).map { String(localized: "「\($0)」正在輸出，按下後會排在它後面") } ?? "")
 
                 // 其他輸出方式
                 Menu {
@@ -332,6 +347,9 @@ struct SubtitleEditor: View {
             }
             .controlSize(.large)
 
+            if let queue = store.queueInfo(.export) {
+                QueueNotice(kind: .export, position: queue.position, runningProject: queue.runningProject)
+            }
             #if APPSTORE
             // 預覽畫面此刻就有浮水印，是唯一「想移除它」的動機已經存在的時刻。
             WatermarkNoticeButton()
@@ -429,7 +447,7 @@ struct SubtitleEditor: View {
         }
         .frame(minHeight: 70, maxHeight: .infinity)
         .overlay {
-            if store.subtitles.isEmpty && store.subtitleStatus == nil {
+            if store.subtitles.isEmpty && !store.isTranscribing {
                 Text(Transcriber.isModelDownloaded
                      ? "選好語音與字幕語言，按「產生字幕」；不加字幕也可以直接輸出"
                      : "選好語音與字幕語言，按「產生字幕」。第一次需要下載語音模型（約 1.6 GB，只需要一次）；不加字幕也可以直接輸出")
@@ -850,5 +868,35 @@ struct ProofreadGuide: View {
             Label("用 LLM 校正字幕", systemImage: "sparkles")
                 .font(.caption.weight(.medium))
         }
+    }
+}
+
+// MARK: - 排隊提示
+
+struct QueueNotice: View {
+    @EnvironmentObject var store: AppStore
+    let kind: JobKind
+    let position: Int
+    let runningProject: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hourglass")
+            VStack(alignment: .leading, spacing: 1) {
+                Text(kind == .transcribe ? "排隊產生字幕中" : "排隊輸出中")
+                    .font(.caption.weight(.semibold))
+                Text(kind == .transcribe
+                     ? String(localized: "「\(runningProject)」正在產生字幕，這個專案排第 \(position) 個，輪到時會自動開始")
+                     : String(localized: "「\(runningProject)」正在輸出，這個專案排第 \(position) 個，輪到時會自動開始"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 4)
+            Button("取消排隊") { store.cancelQueued(kind) }
+                .controlSize(.small)
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.12)))
     }
 }
