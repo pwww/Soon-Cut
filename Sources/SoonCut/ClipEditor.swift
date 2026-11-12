@@ -90,6 +90,19 @@ struct ClipEditor: View {
                 .disabled(!store.canRemoveRange(clip.id, at: currentTime))
                 .help("刪掉播放線所在的黃色區段")
 
+                Button {
+                    let base = store.currentProject?.name ?? String(localized: "專案")
+                    TextPrompt.ask(title: String(localized: "另存為新專案"),
+                                   message: String(localized: "只帶走這個片段目前的黃色區段和速度，原專案不受影響。存好後會切到新專案，可以直接產生字幕。"),
+                                   defaultText: String(localized: "\(base)－片段")) {
+                        store.saveClipAsNewProject(clip.id, name: $0)
+                    }
+                } label: {
+                    Label("另存為新專案", systemImage: "square.and.arrow.down.on.square")
+                }
+                .disabled(!store.canSwitchProject)
+                .help("把這個片段剪好的範圍另存成一個獨立專案")
+
                 if clip.isTrimmed {
                     Button("還原") {
                         store.setRanges(clipID: clip.id, [ClipRange(start: 0, end: clip.duration)])

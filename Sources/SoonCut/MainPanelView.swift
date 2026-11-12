@@ -167,6 +167,7 @@ struct MainPanelView: View {
 
     private var regionInfo: some View {
         HStack {
+            ProjectMenu()
             Group {
                 if let r = store.region {
                     Text("範圍 \(Int(r.rect.width)) × \(Int(r.rect.height)) pt")
@@ -816,6 +817,79 @@ struct LanguageMenu: View {
             DispatchQueue.main.async {
                 if error == nil { NSApp.terminate(nil) }
             }
+        }
+    }
+}
+
+// MARK: - 專案選單
+
+struct ProjectMenu: View {
+    @EnvironmentObject var store: AppStore
+    @State private var confirmDelete = false
+
+    var body: some View {
+        Menu {
+            ForEach(store.projects) { p in
+                Button {
+                    store.switchProject(to: p.id)
+                } label: {
+                    if p.id == store.currentProjectID {
+                        Label(p.name, systemImage: "checkmark")
+                    } else {
+                        Text(p.name)
+                    }
+                }
+            }
+            Divider()
+            Button("新增專案…") {
+                TextPrompt.ask(title: String(localized: "新增專案"),
+                               message: String(localized: "新專案會從空白開始，錄好或匯入的片段會放進這個專案。"),
+                               defaultText: String(localized: "新專案")) { store.newProject(named: $0) }
+            }
+            Button("重新命名…") {
+                TextPrompt.ask(title: String(localized: "重新命名專案"), message: nil,
+                               defaultText: store.currentProject?.name ?? "") { store.renameCurrentProject($0) }
+            }
+            Button("刪除這個專案…", role: .destructive) { confirmDelete = true }
+                .disabled(store.projects.count <= 1)
+        } label: {
+            Label(store.currentProject?.name ?? String(localized: "專案"), systemImage: "folder")
+                .lineLimit(1)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(!store.canSwitchProject)
+        .help("專案：每個專案各自保存片段、剪輯、字幕與輸出清單")
+        .confirmationDialog("刪除「\(store.currentProject?.name ?? "")」？", isPresented: $confirmDelete) {
+            Button("刪除專案", role: .destructive) { store.deleteCurrentProject() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("專案的剪輯與字幕會丟到垃圾桶；只有這個專案用到的影片檔也會一起丟到垃圾桶。其他專案還在用的影片不受影響。")
+        }
+    }
+}
+
+/// 跳出一個可以輸入文字的小視窗（掛在浮動視窗上，才不會被蓋住）
+enum TextPrompt {
+    @MainActor
+    static func ask(title: String, message: String?, defaultText: String, completion: @escaping (String) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = title
+        if let message { alert.informativeText = message }
+        let field = NSTextField(string: defaultText)
+        field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
+        alert.accessoryView = field
+        alert.addButton(withTitle: String(localized: "好"))
+        alert.addButton(withTitle: String(localized: "取消"))
+        alert.window.initialFirstResponder = field
+        let handle: (NSApplication.ModalResponse) -> Void = { response in
+            let text = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if response == .alertFirstButtonReturn, !text.isEmpty { completion(text) }
+        }
+        if let window = FloatingPanel.current {
+            alert.beginSheetModal(for: window, completionHandler: handle)
+        } else {
+            handle(alert.runModal())
         }
     }
 }

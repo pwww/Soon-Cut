@@ -57,7 +57,10 @@ enum ClipStorage {
         return dir
     }
 
-    static var libraryURL: URL { rawDir.appendingPathComponent("library.json") }
+    /// 目前專案的資料夾（片段清單、字幕、輸出清單都存在這裡；影片檔本身共用 Raw/）
+    nonisolated(unsafe) static var currentProjectDir: URL = rawDir
+
+    static var libraryURL: URL { currentProjectDir.appendingPathComponent("library.json") }
 
     static func newClipURL() -> URL {
         let f = DateFormatter()
@@ -128,9 +131,7 @@ enum ClipStorage {
             }
             clips.append(clip)
         }
-        for url in files where base[url.lastPathComponent] == nil {
-            clips.append(await makeClip(url: url))
-        }
+        // 每個專案只載入自己清單裡的片段（Raw/ 裡其他專案的影片不會跑進來）
         // 使用中的在前、暫存的在後
         return clips.filter { !$0.isStaged } + clips.filter { $0.isStaged }
     }
@@ -167,5 +168,95 @@ enum ClipStorage {
         let time = CMTime(seconds: seconds, preferredTimescale: 600)
         guard let cg = try? await generator.image(at: time).image else { return nil }
         return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    }
+}
+
+// MARK: - 專案：各自的片段清單、剪輯點、字幕、輸出清單；影片檔共用 Raw/
+
+struct ProjectInfo: Codable, Identifiable, Equatable {
+    var id: UUID
+    var name: String
+    var createdAt: Date
+    var updatedAt: Date
+}
+
+enum Projects {
+    static var dir: URL {
+        let dir = ClipStorage.rootDir.appendingPathComponent("Projects", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    static func folder(_ id: UUID) -> URL {
+        let dir = Self.dir.appendingPathComponent(id.uuidString, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    static var indexURL: URL { dir.appendingPathComponent("projects.json") }
+
+    static func loadIndex() -> [ProjectInfo] {
+        guard let data = try? Data(contentsOf: indexURL),
+              let list = try? JSONDecoder().decode([ProjectInfo].self, from: data) else { return [] }
+        return list
+    }
+
+    static func saveIndex(_ list: [ProjectInfo]) {
+        if let data = try? JSONEncoder().encode(list) { try? data.write(to: indexURL, options: .atomic) }
+    }
+
+    static func create(name: String) -> ProjectInfo {
+        let p = ProjectInfo(id: UUID(), name: name, createdAt: Date(), updatedAt: Date())
+        _ = folder(p.id)
+        return p
+    }
+
+    /// 第一次使用專案：把舊版放在 Raw/、Exports/ 的資料搬進「預設專案」（只複製，不刪舊檔）
+    static func migrateIfNeeded() -> [ProjectInfo] {
+        let existing = loadIndex()
+        guard existing.isEmpty else { return existing }
+        let first = create(name: String(localized: "我的第一個專案"))
+        let target = folder(first.id)
+        let fm = FileManager.default
+        let moves: [(URL, String)] = [
+            (ClipStorage.rawDir.appendingPathComponent("library.json"), "library.json"),
+            (ClipStorage.rawDir.appendingPathComponent("subtitles.json"), "subtitles.json"),
+            (ClipStorage.rawDir.appendingPathComponent("subtitle-stash.json"), "subtitle-stash.json"),
+            (OutputLibrary.exportsDir.appendingPathComponent("exports.json"), "exports.json"),
+        ]
+        for (src, name) in moves where fm.fileExists(atPath: src.path) {
+            try? fm.copyItem(at: src, to: target.appendingPathComponent(name))
+        }
+        // 舊版會把 Raw/ 裡沒記錄的影片自動加進來；搬家時一次補進暫存區，什麼都不會不見
+        let libURL = target.appendingPathComponent("library.json")
+        var entries = (try? Data(contentsOf: libURL)).flatMap { try? JSONDecoder().decode([LibraryEntry].self, from: $0) } ?? []
+        let known = Set(entries.map(\.file))
+        for url in ClipStorage.existingClipURLs() where !known.contains(url.lastPathComponent) {
+            entries.append(LibraryEntry(id: UUID().uuidString, file: url.lastPathComponent,
+                                        trimStart: 0, trimEnd: .greatestFiniteMagnitude, staged: true, ranges: nil))
+        }
+        if let data = try? JSONEncoder().encode(entries) { try? data.write(to: libURL, options: .atomic) }
+        saveIndex([first])
+        return [first]
+    }
+
+    /// 其他專案用到的影片檔名（丟垃圾桶前檢查，避免刪到別的專案還在用的檔）
+    static func filesUsed(excluding id: UUID) -> Set<String> {
+        var used: Set<String> = []
+        for p in loadIndex() where p.id != id {
+            let url = dir.appendingPathComponent(p.id.uuidString).appendingPathComponent("library.json")
+            if let data = try? Data(contentsOf: url),
+               let entries = try? JSONDecoder().decode([LibraryEntry].self, from: data) {
+                used.formUnion(entries.map(\.file))
+            }
+        }
+        return used
+    }
+
+    /// 新專案只放一個片段（另存用）
+    static func writeLibrary(_ entries: [LibraryEntry], for id: UUID) {
+        if let data = try? JSONEncoder().encode(entries) {
+            try? data.write(to: folder(id).appendingPathComponent("library.json"), options: .atomic)
+        }
     }
 }

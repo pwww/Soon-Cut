@@ -37,7 +37,8 @@ enum OutputLibrary {
         return dir
     }
 
-    static var indexURL: URL { exportsDir.appendingPathComponent("exports.json") }
+    /// 輸出清單跟著專案（影片檔仍放在共用的 Exports/）
+    static var indexURL: URL { ClipStorage.currentProjectDir.appendingPathComponent("exports.json") }
 
     static func newExportURL() -> URL {
         let f = DateFormatter()

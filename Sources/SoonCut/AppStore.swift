@@ -79,6 +79,7 @@ final class AppStore: ObservableObject {
     // MARK: 片段
     @Published var clips: [Clip] = [] {
         didSet {
+            guard !isSwitchingProject else { return }
             pruneUnrelatedSubtitles()
             restoreStashedSubtitles()
         }
@@ -158,6 +159,7 @@ final class AppStore: ObservableObject {
     /// App 啟動後呼叫：顯示上次的範圍框、載入片段、字幕、輸出
     func appDidLaunch() {
         refreshFrame()
+        setUpProjects()
         loadClips()
         loadSubtitles()
         CaptionWorkspace.ensureFiles()
@@ -309,6 +311,105 @@ final class AppStore: ObservableObject {
         currentURL = nil
     }
 
+    // MARK: - 專案
+
+    @Published private(set) var projects: [ProjectInfo] = []
+    @Published private(set) var currentProjectID = UUID()
+    /// 切換專案中：暫停「片段變了就清字幕」之類的連動
+    private var isSwitchingProject = false
+
+    var currentProject: ProjectInfo? { projects.first { $0.id == currentProjectID } }
+    var canSwitchProject: Bool { !isRecording && !isExporting && !isTranscribing && !isBusy }
+
+    private func setUpProjects() {
+        projects = Projects.migrateIfNeeded()
+        let saved = UserDefaults.standard.string(forKey: "currentProjectID").flatMap(UUID.init(uuidString:))
+        currentProjectID = projects.first { $0.id == saved }?.id ?? projects[0].id
+        ClipStorage.currentProjectDir = Projects.folder(currentProjectID)
+        loadSubtitleStash()
+    }
+
+    func switchProject(to id: UUID) {
+        guard id != currentProjectID, canSwitchProject, projects.contains(where: { $0.id == id }) else { return }
+        touchCurrentProject()
+        isSwitchingProject = true
+        clearEditHistory()
+        subtitles = []
+        sourceSubtitles = []
+        spokenLanguage = nil
+        subtitlesKey = nil
+        selectedClipID = nil
+        clips = []
+
+        currentProjectID = id
+        UserDefaults.standard.set(id.uuidString, forKey: "currentProjectID")
+        ClipStorage.currentProjectDir = Projects.folder(id)
+        loadSubtitles()
+        loadSubtitleStash()
+        exports = OutputLibrary.load()
+        syncCaptionFile()
+        Task {
+            let loaded = await ClipStorage.loadClips()
+            clips = loaded
+            selectedClipID = loaded.first(where: { !$0.isStaged })?.id ?? loaded.first?.id
+            isSwitchingProject = false
+        }
+    }
+
+    func newProject(named name: String) {
+        guard canSwitchProject else { return }
+        let p = Projects.create(name: name)
+        projects.insert(p, at: 0)
+        Projects.saveIndex(projects)
+        switchProject(to: p.id)
+        appTab = .record
+    }
+
+    func renameCurrentProject(_ name: String) {
+        guard let i = projects.firstIndex(where: { $0.id == currentProjectID }) else { return }
+        projects[i].name = name
+        projects[i].updatedAt = Date()
+        Projects.saveIndex(projects)
+    }
+
+    /// 刪除專案：資料夾丟到垃圾桶；只有這個專案用到的影片檔也一起丟（都可以從垃圾桶救回）
+    func deleteCurrentProject() {
+        guard projects.count > 1, canSwitchProject,
+              let doomed = projects.first(where: { $0.id == currentProjectID }) else { return }
+        let ownFiles = Set(clips.map { $0.url.lastPathComponent })
+        let othersUse = Projects.filesUsed(excluding: doomed.id)
+        let next = projects.first { $0.id != doomed.id }!
+        switchProject(to: next.id)
+        projects.removeAll { $0.id == doomed.id }
+        Projects.saveIndex(projects)
+        let fm = FileManager.default
+        try? fm.trashItem(at: Projects.dir.appendingPathComponent(doomed.id.uuidString), resultingItemURL: nil)
+        for file in ownFiles.subtracting(othersUse) {
+            try? fm.trashItem(at: ClipStorage.rawDir.appendingPathComponent(file), resultingItemURL: nil)
+        }
+    }
+
+    /// 把這個片段（目前的黃色區段與速度）另存成新專案，並切過去準備上字幕
+    func saveClipAsNewProject(_ clipID: UUID, name: String) {
+        guard canSwitchProject, let clip = clips.first(where: { $0.id == clipID }) else { return }
+        let p = Projects.create(name: name)
+        Projects.writeLibrary([LibraryEntry(id: UUID().uuidString, file: clip.url.lastPathComponent,
+                                            trimStart: clip.trimStart, trimEnd: clip.trimEnd, staged: false,
+                                            ranges: clip.ranges, speed: clip.speed == 1 ? nil : clip.speed)],
+                              for: p.id)
+        projects.insert(p, at: 0)
+        Projects.saveIndex(projects)
+        switchProject(to: p.id)
+        appTab = .edit
+        previewMode = .subtitle
+    }
+
+    private func touchCurrentProject() {
+        guard let i = projects.firstIndex(where: { $0.id == currentProjectID }) else { return }
+        projects[i].updatedAt = Date()
+        Projects.saveIndex(projects)
+    }
+
     // MARK: - 片段
 
     func loadClips() {
@@ -327,6 +428,7 @@ final class AppStore: ObservableObject {
         do {
             // 同一個檔案剪開的其他片段還在用時，只移除這一段，不丟檔案
             let shared = clips.contains { $0.id != clip.id && $0.url == clip.url }
+                || Projects.filesUsed(excluding: currentProjectID).contains(clip.url.lastPathComponent)
             if !shared {
                 try FileManager.default.trashItem(at: clip.url, resultingItemURL: nil)
             }
@@ -746,12 +848,17 @@ final class AppStore: ObservableObject {
 
     // MARK: 字幕暫存：片段拉去暫存區時字幕先收起來，原樣拉回來就還原（不用重新產生、校正也不會不見）
 
-    private var stashURL: URL { ClipStorage.rawDir.appendingPathComponent("subtitle-stash.json") }
-    private lazy var subtitleStash: [String: SubtitleFile] = {
+    private var stashURL: URL { ClipStorage.currentProjectDir.appendingPathComponent("subtitle-stash.json") }
+    private var subtitleStash: [String: SubtitleFile] = [:]
+
+    private func loadSubtitleStash() {
         guard let data = try? Data(contentsOf: stashURL),
-              let stash = try? JSONDecoder().decode([String: SubtitleFile].self, from: data) else { return [:] }
-        return stash
-    }()
+              let stash = try? JSONDecoder().decode([String: SubtitleFile].self, from: data) else {
+            subtitleStash = [:]
+            return
+        }
+        subtitleStash = stash
+    }
 
     private func stashCurrentSubtitles() {
         guard let key = subtitlesKey, !key.isEmpty, !subtitles.isEmpty else { return }
@@ -779,7 +886,7 @@ final class AppStore: ObservableObject {
         saveSubtitles()
     }
 
-    private var subtitlesURL: URL { ClipStorage.rawDir.appendingPathComponent("subtitles.json") }
+    private var subtitlesURL: URL { ClipStorage.currentProjectDir.appendingPathComponent("subtitles.json") }
 
     private func saveSubtitles() {
         let file = SubtitleFile(sequenceKey: subtitlesKey ?? "", segments: subtitles,

@@ -47,6 +47,16 @@
         }
       }
     },
+    "%@－片段" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – Clip"
+          }
+        }
+      }
+    },
     "%lld" : {
       "shouldTranslate" : false
     },
@@ -571,6 +581,7 @@
       }
     },
     "先產生字幕，才能只輸出字幕" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -624,6 +635,7 @@
       }
     },
     "其他輸出方式：只輸出字幕檔（SRT），不合成影片" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -659,12 +671,32 @@
         }
       }
     },
+    "刪除「%@」？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”?"
+          }
+        }
+      }
+    },
     "刪除字幕「%@」" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete caption “%@”"
+          }
+        }
+      }
+    },
+    "刪除專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Project"
           }
         }
       }
@@ -682,6 +714,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除這一句"
+          }
+        }
+      }
+    },
+    "刪除這個專案…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete This Project…"
           }
         }
       }
@@ -871,6 +913,16 @@
         }
       }
     },
+    "另存為新專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save as New Project"
+          }
+        }
+      }
+    },
     "只刪掉這句字幕，影片不變" : {
       "localizations" : {
         "en" : {
@@ -893,6 +945,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只剪了一點點、字幕時間差不多時可以沿用"
+          }
+        }
+      }
+    },
+    "只帶走這個片段目前的黃色區段和速度，原專案不受影響。存好後會切到新專案，可以直接產生字幕。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes just this clip's current yellow ranges and speed; the original project isn't changed. You'll switch to the new project, ready for captions."
           }
         }
       }
@@ -1147,6 +1209,16 @@
         }
       }
     },
+    "好" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
     "字幕" : {
       "localizations" : {
         "en" : {
@@ -1277,6 +1349,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "封存"
+          }
+        }
+      }
+    },
+    "專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Project"
+          }
+        }
+      }
+    },
+    "專案的剪輯與字幕會丟到垃圾桶；只有這個專案用到的影片檔也會一起丟到垃圾桶。其他專案還在用的影片不受影響。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The project's edits and captions go to the Trash, along with videos used only by this project. Videos other projects still use are kept."
+          }
+        }
+      }
+    },
+    "專案：每個專案各自保存片段、剪輯、字幕與輸出清單" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projects: each one keeps its own clips, edits, captions and export list"
           }
         }
       }
@@ -1572,6 +1674,16 @@
         }
       }
     },
+    "我的第一個專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My First Project"
+          }
+        }
+      }
+    },
     "打開片段資料夾" : {
       "localizations" : {
         "en" : {
@@ -1723,6 +1835,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Put the clips you want under Clips in this edit on the Record tab; they're joined here for captions and export"
+          }
+        }
+      }
+    },
+    "把這個片段剪好的範圍另存成一個獨立專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save this clip's trimmed range as its own project"
           }
         }
       }
@@ -1920,6 +2042,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Build a glossary"
+          }
+        }
+      }
+    },
+    "新增專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Project"
+          }
+        }
+      }
+    },
+    "新增專案…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Project…"
+          }
+        }
+      }
+    },
+    "新專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Project"
+          }
+        }
+      }
+    },
+    "新專案會從空白開始，錄好或匯入的片段會放進這個專案。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new project starts empty. Clips you record or import go into it."
           }
         }
       }
@@ -3300,6 +3462,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redo: %@ (⌥⇧⌘Z)"
+          }
+        }
+      }
+    },
+    "重新命名…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename…"
+          }
+        }
+      }
+    },
+    "重新命名專案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename Project"
           }
         }
       }
